@@ -17,12 +17,15 @@
                                           :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (resource :available-media-types ["text/html"]
+                                       :exists? (let [contacts (contacts/retrieve)]
+                                                  {:contacts contacts})
                                        :handle-ok (fn [ctx]
-                                                    (let [contacts (contacts/retrieve)
-                                                          query (-> ctx
+                                                    (let [query (-> ctx
                                                                     (request/assoc-query-params)
                                                                     (get-in [:request :query-params :query]))]
-                                                      (-> (contacts/find contacts query)
+                                                      (-> ctx
+                                                          (:contacts)
+                                                          (contacts/find query)
                                                           (contacts/render query)
                                                           (page/render)))))]]))
 
