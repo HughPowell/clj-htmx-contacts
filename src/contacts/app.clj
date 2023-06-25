@@ -15,6 +15,7 @@
                                :location "/contacts")]
                 ["/favicon.ico" (resource :available-media-types ["image/x-icon"]
                                           :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
+                ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (resource :available-media-types ["text/html"]
                                        :handle-ok (fn [ctx]
                                                     (let [contacts (contacts/retrieve)

@@ -8,7 +8,7 @@
     {:lang "en"}
     [:head
      [:title "Contact App"]
-     (page/include-css "https://the.missing.style/v0.2.0/missing.min.css")]
+     (page/include-css "public/missing.min.css")]
     [:body
      [:main
       [:header
