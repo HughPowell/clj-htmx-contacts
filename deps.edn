@@ -3,6 +3,12 @@
            camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
            hiccup/hiccup                       {:mvn/version "2.0.0-RC1"}
            liberator/liberator                 {:mvn/version "0.15.3"}
+           metosin/malli                       {:mvn/version "0.11.0"}
            metosin/reitit-ring                 {:mvn/version "0.7.0-alpha5"}
            ring/ring-jetty-adapter             {:mvn/version "1.10.0"}}
- :aliases {:dev {:extra-deps {clj-http/clj-http {:mvn/version "3.12.3"}}}}}
+ :aliases {:dev  {:extra-deps {clj-http/clj-http {:mvn/version "3.12.3"}}}
+           :test {:extra-paths ["tests"]
+                  :extra-deps  {lambdaisland/kaocha        {:mvn/version "1.85.1342"}
+                                com.gfredericks/test.chuck {:mvn/version "0.2.13"}}
+                  :exec-fn     kaocha.runner/exec-fn
+                  :exec-args   {}}}}

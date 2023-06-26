@@ -1,9 +1,15 @@
 (ns contacts.contacts
   (:refer-clojure :exclude [find])
-  (:require [contacts.page :as page]
+  (:require [contacts.contact :as contact]
+            [contacts.page :as page]
             [clojure.string :as string]
             [hiccup.element :as element]
             [hiccup.form :as form]))
+
+;; Schema
+
+(def schema
+  [:sequential contact/schema])
 
 ;; Business logic
 
@@ -11,16 +17,18 @@
   (if query
     (filter (fn [contact]
               (some (fn [attribute] (string/includes? attribute query))
-                    (select-keys contact [:first-name :last-name :phone :email])))
+                    (vals (select-keys contact [:first-name :last-name :phone :email]))))
             contacts)
     contacts))
 
 ;; Rendering
 
+(def search-query-param :query)
+
 (defn- search-form [current-search]
   (form/form-to {:class "tool-bar"} [:get "/contacts"]
                 (form/label "search" "Search Term")
-                (page/search-field "query" current-search)
+                (page/search-field (name search-query-param) current-search)
                 (form/submit-button "Search")))
 
 (defn- table [contacts]

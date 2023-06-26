@@ -4,8 +4,15 @@
             [contacts.page :as page]
             [clojure.java.io :as io]
             [liberator.core :refer [resource]]
+            [malli.core :as malli]
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]))
+
+(def ^:private search-key :query)
+(def ^:private contacts-key :contacts)
+(def ^:private search-schema
+  [:or [:string {:min 1}] :nil])
+
 
 (defn router []
   (ring/router [["/" (resource :available-media-types ["text/html"]
@@ -17,17 +24,23 @@
                                           :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (resource :available-media-types ["text/html"]
-                                       :exists? (let [contacts (contacts/retrieve)]
-                                                  {:contacts contacts})
+                                       :malformed? (fn [{:keys [request]}]
+                                                     (let [search (-> request
+                                                                      (request/assoc-query-params)
+                                                                      (get-in [:params contacts/search-query-param])
+                                                                      (not-empty))]
+                                                       (if (malli/validate search-schema search)
+                                                         [false {search-key search}]
+                                                         true)))
+                                       :exists? (fn [_]
+                                                  (let [contacts (contacts/retrieve)]
+                                                    (when (malli/validate contacts/schema contacts)
+                                                      {contacts-key contacts})))
                                        :handle-ok (fn [ctx]
-                                                    (let [query (-> ctx
-                                                                    (request/assoc-query-params)
-                                                                    (get-in [:request :query-params :query]))]
-                                                      (-> ctx
-                                                          (:contacts)
-                                                          (contacts/find query)
-                                                          (contacts/render query)
-                                                          (page/render)))))]]))
+                                                    (-> (get ctx contacts-key)
+                                                        (contacts/find (get ctx search-key))
+                                                        (contacts/render (get ctx search-key))
+                                                        (page/render))))]]))
 
 (defn handler []
   (ring/ring-handler
@@ -39,30 +52,8 @@
   (jetty/run-jetty (#'handler) {:join? false :port 3000}))
 
 (comment
-  (require '[clj-http.client :as client])
-
-  (contacts/persist
-    [{:id         1
-      :first-name "John"
-      :last-name  "Smith"
-      :phone      "123-456-7890"
-      :email      "john@example.comz"}
-     {:id         2
-      :first-name "Dana"
-      :last-name  "Crandith"
-      :phone      "123-456-7890"
-      :email      "dcran@example.com"}
-     {:id         3
-      :first-name "Edith"
-      :last-name  "Neutvaar"
-      :phone      "123-456-7890"
-      :email      "en@example.com"}])
-
   (def server (start-server))
   (do
     (.stop server)
-    (def server (start-server)))
-
-  (client/get "http://localhost:3000/contacts")
-  *e
-  )
+    (def server (start-server))
+    (contacts/persist (malli.generator/generate contacts/schema))))
