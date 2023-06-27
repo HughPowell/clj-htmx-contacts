@@ -12,19 +12,18 @@
                    end (generators/choose start (count s))]
     (subs s start end)))
 
+(defn- contact-matches-search? [contact search]
+  (some #(string/includes? % search)
+        (vals (select-keys contact [:first-name :last-name :phone :email]))))
+
 (defn- all-contain [contacts search]
   (->> (sut/find contacts search)
-       (every? (fn [contact]
-                 (some #(string/includes? % search)
-                       (vals (dissoc contact :id)))))))
+       (every? #(contact-matches-search? % search))))
 
 (defn- no-not-found-contain-search [contacts search]
   (->> contacts
        (remove (set (sut/find contacts search)))
-       (not-any?
-         (fn [contact]
-           (some #(string/includes? % search)
-                 (vals (dissoc contact :id)))))))
+       (not-any? #(contact-matches-search? % search))))
 
 (defn- all-found-contacts-in-original-list [contacts search]
   (every? (set contacts) (sut/find contacts search)))
