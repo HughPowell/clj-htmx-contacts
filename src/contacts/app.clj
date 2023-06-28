@@ -14,7 +14,7 @@
   [:or [:string {:min 1}] :nil])
 
 
-(defn router []
+(defn router [contacts-storage]
   (ring/router [["/" (resource :available-media-types ["text/html"]
                                :exists? false
                                :existed? true
@@ -33,7 +33,7 @@
                                                          [false {search-key search}]
                                                          true)))
                                        :exists? (fn [_]
-                                                  (let [contacts (contacts/retrieve)]
+                                                  (let [contacts (contacts/retrieve contacts-storage)]
                                                     (when (malli/validate contacts/schema contacts)
                                                       {contacts-key contacts})))
                                        :handle-ok (fn [ctx]
@@ -42,18 +42,20 @@
                                                         (contacts/render (get ctx search-key))
                                                         (page/render))))]]))
 
-(defn handler []
+(defn handler [contacts-storage]
   (ring/ring-handler
-    (router)
+    (router contacts-storage)
     nil
     {:inject-match? false :inject-router? false}))
 
-(defn start-server []
-  (jetty/run-jetty (#'handler) {:join? false :port 3000}))
+(defn start-server [contacts-storage]
+  (jetty/run-jetty (#'handler contacts-storage) {:join? false :port 3000}))
 
 (comment
-  (def server (start-server))
+  (defn init-contacts-storage []
+    (contacts/persist (atom []) (malli.generator/generate contacts/schema)))
+  (def server (start-server (init-contacts-storage)))
+
   (do
     (.stop server)
-    (def server (start-server))
-    (contacts/persist (malli.generator/generate contacts/schema))))
+    (def server (start-server (init-contacts-storage)))))

@@ -60,10 +60,9 @@
 
 ;; Persistence
 
-(def ^:private contacts-storage (atom {}))
+(defn persist [contacts-storage contacts]
+  (reset! contacts-storage (vec contacts))
+  contacts-storage)
 
-(defn persist [contacts]
-  (reset! contacts-storage contacts))
-
-(defn retrieve []
+(defn retrieve [contacts-storage]
   @contacts-storage)

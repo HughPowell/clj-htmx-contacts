@@ -7,6 +7,18 @@
             [contacts.contacts :as sut]
             [malli.generator :as malli.generator]))
 
+(defn oracle-persist [_contacts-storage contacts]
+  (vec contacts))
+
+(defn oracle-retrieve [contacts-storage]
+  contacts-storage)
+
+(defspec contacts-are-stored-as-if-a-vector
+  (for-all [contacts (malli.generator/generator sut/schema)]
+    (let [contacts-storage (atom [])]
+      (is (= (-> [] (oracle-persist contacts) (oracle-retrieve))
+             (-> contacts-storage (sut/persist contacts) (sut/retrieve)))))))
+
 (defn- substring-generator [s]
   (generators/let [start (generators/choose 0 (count s))
                    end (generators/choose start (count s))]
@@ -47,4 +59,5 @@
 
 (comment
   (finds-all-contacts-that-match-search-string)
-  (nil-search-string-returns-all-contacts))
+  (nil-search-string-returns-all-contacts)
+  (contacts-are-stored-as-if-a-vector))
