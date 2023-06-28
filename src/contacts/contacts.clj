@@ -2,14 +2,20 @@
   (:refer-clojure :exclude [find])
   (:require [contacts.contact :as contact]
             [contacts.page :as page]
+            [contacts.request :as request]
             [clojure.string :as string]
             [hiccup.element :as element]
-            [hiccup.form :as form]))
+            [hiccup.form :as form]
+            [liberator.core :refer [defresource]]
+            [malli.core :as malli]))
 
 ;; Schema
 
 (def schema
   [:sequential contact/schema])
+
+(def ^:private search-schema
+  [:or [:string {:min 1}] :nil])
 
 ;; Business logic
 
@@ -66,3 +72,25 @@
 
 (defn retrieve [contacts-storage]
   @contacts-storage)
+
+;; HTTP Resource
+
+(defresource resource [contacts-storage]
+             :available-media-types ["text/html"]
+             :malformed? (fn [{:keys [request]}]
+                           (let [search (-> request
+                                            (request/assoc-query-params)
+                                            (get-in [:params search-query-param])
+                                            (not-empty))]
+                             (if (malli/validate search-schema search)
+                               [false {:query search}]
+                               true)))
+             :exists? (fn [_]
+                        (let [contacts (retrieve contacts-storage)]
+                          (when (malli/validate schema contacts)
+                            {:contacts contacts})))
+             :handle-ok (fn [ctx]
+                          (-> (:contacts ctx)
+                              (find (:query ctx))
+                              (render (:query ctx))
+                              (page/render))))
