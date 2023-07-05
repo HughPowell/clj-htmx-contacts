@@ -1,6 +1,7 @@
 (ns contacts.app
   (:require [clojure.string :as string]
             [contacts.contacts :as contacts]
+            [contacts.contacts.new :as contacts.new]
             [clojure.java.io :as io]
             [contacts.page :as page]
             [liberator.core :refer [resource]]
@@ -36,7 +37,8 @@
                 ["/favicon.ico" (resource :available-media-types ["image/x-icon"]
                                           :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
                 ["/public/*" (ring/create-resource-handler)]
-                ["/contacts" (contacts/resource defaults contacts-storage)]]))
+                ["/contacts" (contacts/resource defaults contacts-storage)]
+                ["/contacts/new" (contacts.new/resource defaults)]]))
 
 (defn handler [contacts-storage]
   (ring/ring-handler
