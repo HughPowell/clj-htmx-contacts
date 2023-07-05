@@ -3,10 +3,7 @@
 (def schema
   [:map
    [:id [:string {:min 1}]]
-   [:first-name {:optional true} [:string {:min 1}]]
-   [:last-name {:optional true} [:string {:min 1}]]
-   [:phone {:optional true} [:re #"\+?(\d( |-)?){7,13}\d"]]
-   [:email {:optional true} [:re #"[a-z\.\+]+@[a-z\.]+"]]])
-
-(comment
-  )
+   [:first-name :string]
+   [:last-name :string]
+   [:phone [:or [:string {:max 0}] [:re #"\+?(\d( |-)?){7,13}\d"]]]
+   [:email [:or [:string {:max 0}] [:re #"[a-z\.\+]+@[a-z\.]+"]]]])

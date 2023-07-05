@@ -6,20 +6,24 @@
             [clojure.string :as string]
             [hiccup.element :as element]
             [hiccup.form :as form]
-            [liberator.core :refer [defresource]]
-            [malli.core :as malli]))
+            [liberator.core :as liberator]
+            [malli.core :as malli]
+            [malli.error :as malli.error]))
 
-;; Schema
+;; Schemas
+
+(defn- ids-are-unique? [contacts]
+  (= (count contacts)
+     (count (set (map :id contacts)))))
 
 (def schema
-  [:sequential contact/schema])
-
-(def ^:private search-schema
-  [:or [:string {:min 1}] :nil])
+  [:and
+   [:set contact/schema]
+   [:fn ids-are-unique?]])
 
 ;; Business logic
 
-(defn find [contacts query]
+(defn- find [contacts query]
   (if query
     (filter (fn [contact]
               (some (fn [attribute] (string/includes? attribute query))
@@ -29,12 +33,10 @@
 
 ;; Rendering
 
-(def search-query-param :query)
-
 (defn- search-form [current-search]
   (form/form-to {:class "tool-bar"} [:get "/contacts"]
                 (form/label "search" "Search Term")
-                (page/search-field (name search-query-param) current-search)
+                (page/search-field "query" current-search)
                 (form/submit-button "Search")))
 
 (defn- table [contacts]
@@ -59,38 +61,47 @@
   [:p (element/link-to "/contacts/new" "Add Contact")])
 
 (defn render [contacts query]
-  (list
-    (search-form query)
-    (table contacts)
-    (add-contact)))
+  (page/render
+    (list
+      (search-form query)
+      (table contacts)
+      (add-contact))))
 
 ;; Persistence
 
-(defn persist [contacts-storage contacts]
-  (reset! contacts-storage (vec contacts))
+(defn- validate [schema contacts]
+  (when-not (malli/validate schema contacts)
+    (let [explanation (malli/explain schema contacts)]
+      (throw (ex-info (malli.error/humanize explanation) explanation)))))
+
+(defn persist* [contacts-storage contacts]
+  (reset! contacts-storage (set contacts))
   contacts-storage)
 
-(defn retrieve [contacts-storage]
+(defn persist [contacts-storage contacts]
+  (validate schema contacts)
+  (persist* contacts-storage contacts))
+
+(defn retrieve* [contacts-storage]
   @contacts-storage)
+
+(defn retrieve [contacts-storage]
+  (let [contacts (retrieve* contacts-storage)]
+    (validate schema contacts)
+    contacts))
 
 ;; HTTP Resource
 
-(defresource resource [contacts-storage]
-             :available-media-types ["text/html"]
-             :malformed? (fn [{:keys [request]}]
-                           (let [search (-> request
-                                            (request/assoc-query-params)
-                                            (get-in [:params search-query-param])
-                                            (not-empty))]
-                             (if (malli/validate search-schema search)
-                               [false {:query search}]
-                               true)))
-             :exists? (fn [_]
-                        (let [contacts (retrieve contacts-storage)]
-                          (when (malli/validate schema contacts)
-                            {:contacts contacts})))
-             :handle-ok (fn [ctx]
-                          (-> (:contacts ctx)
-                              (find (:query ctx))
-                              (render (:query ctx))
-                              (page/render))))
+(defn resource [defaults contacts-storage]
+  (liberator/resource defaults
+                      :handle-ok (fn [{:keys [request]}]
+                                   (let [contacts (retrieve contacts-storage)
+                                         query (-> request
+                                                   (request/assoc-query-params)
+                                                   (get-in [:params :query]))]
+                                     (-> contacts
+                                         (find query)
+                                         (render query))))))
+
+(comment
+  )
