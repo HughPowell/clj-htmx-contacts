@@ -8,15 +8,15 @@
             [net.cgrand.enlive-html :as enlive]))
 
 (defn- new-contact-form-is-returned-ok? [contacts request]
-  (let [{:keys [status]} ((app/handler contacts) request)]
-    (= 200 status)))
+  (let [{:keys [status]} (lib.app/make-call contacts request)]
+    (is (= 200 status))))
 
 (defn- new-form-is-empty? [contacts request]
   (let [inputs-with-values (-> ((app/handler contacts) request)
                                (:body)
                                (enlive/html-snippet)
                                (enlive/select [[:input (enlive/attr? :value)]]))]
-    (empty? inputs-with-values)))
+    (is (empty? inputs-with-values))))
 
 (defspec getting-a-new-contact-form-provides-an-empty-form
   (for-all [request (request/generator "/contacts/new")]

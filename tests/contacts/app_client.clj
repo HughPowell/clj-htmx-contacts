@@ -5,14 +5,13 @@
             [clojure.test.check.generators :as generators]
             [clojure.test.check.properties :refer [for-all]]
             [contacts.app :as app]
-            [contacts.lib.oracle :as oracle]
+            [contacts.lib.app :as lib.app]
             [contacts.lib.request :as request]
             [reitit.core :as reitit]))
 
 (defn- unsupported-media-type-response? [contacts request]
-  (oracle/fixture
-    (let [{:keys [status]} ((app/handler contacts) request)]
-      (= 406 status))))
+  (let [{:keys [status]} (lib.app/make-call contacts request)]
+    (is (= 406 status))))
 
 (defspec non-text-html-content-type-not-supported
   (for-all [request (generators/let [content-type (generators/such-that
@@ -24,9 +23,8 @@
 
 ;; test for not found
 (defn- non-existant-route-returns-not-found? [contacts request]
-  (oracle/fixture
-    (let [{:keys [status]} ((app/handler contacts) request)]
-      (= 404 status))))
+  (let [{:keys [status]} (lib.app/make-call contacts request)]
+    (is (= 404 status))))
 
 (defspec not-found-returned-for-unknown-paths
   (for-all [request (generators/let [path (generators/such-that

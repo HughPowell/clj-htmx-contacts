@@ -25,9 +25,8 @@
 
 (defspec contacts-integration-matches-oracle
   (for-all [contacts (malli.generator/generator sut/schema)]
-    (let [contacts-storage (atom #{})]
-      (is (= (-> #{} (oracle-persist* contacts) (oracle-retrieve*))
-             (-> contacts-storage (sut/persist* contacts) (sut/retrieve*)))))))
+    (is (= (-> #{} (oracle-persist* contacts) (oracle-retrieve*))
+           (-> (atom #{}) (sut/persist* contacts) (sut/retrieve*))))))
 
 (def sut-path "/contacts")
 
@@ -45,15 +44,13 @@
     (subs s start end)))
 
 (defn- successful-response? [contacts request]
-  (oracle/fixture
-    (let [response ((app/handler contacts) request)]
-      (= 200 (:status response)))))
+  (let [response (app/make-call contacts request)]
+    (is (= 200 (:status response)))))
 
 (defn- returns-expected-data-type?
   ([contacts request]
-   (oracle/fixture
-     (let [response ((app/handler contacts) request)]
-       (= "text/html;charset=UTF-8" (get-in response [:headers "Content-Type"]))))))
+   (let [response (app/make-call contacts request)]
+     (is (= "text/html;charset=UTF-8" (get-in response [:headers :content-type]))))))
 
 (defn- rendered-contacts [response]
   (-> response
@@ -62,11 +59,10 @@
       (html/table->map [:first-name :last-name :phone :email])))
 
 (defn- all-contacts-are-rendered? [contacts request]
-  (oracle/fixture
-    (let [response ((app/handler contacts) request)]
-      (=
-        (set (rendered-contacts response))
-        (set (map #(dissoc % :id) contacts))))))
+  (let [response (app/make-call contacts request)]
+    (is (=
+          (set (rendered-contacts response))
+          (set (map #(dissoc % :id) contacts))))))
 
 (defspec all-contacts-returned-when-no-query
   (for-all [contacts (malli.generator/generator sut/schema)
@@ -76,12 +72,11 @@
          (is (all-contacts-are-rendered? contacts request)))))
 
 (defn- all-contacts-that-match-are-rendered? [contacts request search]
-  (oracle/fixture
-    (let [response ((app/handler contacts) request)
-          rendered-contacts (rendered-contacts response)]
-      (every? (fn [contact]
-                (some #(string/includes? % search) (vals contact)))
-              rendered-contacts))))
+  (let [response (app/make-call contacts request)
+        rendered-contacts (rendered-contacts response)]
+    (is (every? (fn [contact]
+                  (some #(string/includes? % search) (vals contact)))
+                rendered-contacts))))
 
 (defn- unmatched-contacts-are-not-rendered? [contacts request search]
   (oracle/fixture
@@ -97,11 +92,10 @@
         unrendered-contacts))))
 
 (defn- all-rendered-contacts-exist? [contacts request]
-  (oracle/fixture
-    (let [response ((app/handler contacts) request)
-          rendered-contacts (mset/multiset (rendered-contacts response))]
-      (set/subset? rendered-contacts
-                   (set (map #(dissoc % :id) contacts))))))
+  (let [response (app/make-call contacts request)
+        rendered-contacts (mset/multiset (rendered-contacts response))]
+    (is (set/subset? rendered-contacts
+                     (set (map #(dissoc % :id) contacts))))))
 
 (defspec contacts-that-match-search-are-rendered
   (for-all [[contacts request search] (generators/let [contacts (malli.generator/generator sut/schema)
