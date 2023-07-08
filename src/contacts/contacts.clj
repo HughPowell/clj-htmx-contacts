@@ -18,7 +18,12 @@
 
 (def schema
   [:and
-   [:set contact/schema]
+   [:set [:map
+          contact/id
+          contact/first-name
+          contact/last-name
+          contact/phone
+          contact/email]]
    [:fn ids-are-unique?]])
 
 ;; Business logic
