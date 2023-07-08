@@ -102,7 +102,7 @@
                       :handle-ok (fn [{:keys [request]}]
                                    (let [contacts (retrieve contacts-storage)
                                          query (-> request
-                                                   (request/assoc-query-params)
+                                                   (request/assoc-params)
                                                    (get-in [:params :query]))]
                                      (-> contacts
                                          (find query)

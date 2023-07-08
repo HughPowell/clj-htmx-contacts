@@ -3,7 +3,8 @@
             [clojure.test.check.generators :as generators]
             [malli.generator :as malli.generator]
             [meta-merge.core :as meta-merge])
-  (:import (java.nio.charset Charset StandardCharsets)
+  (:import (java.io StringReader)
+           (java.nio.charset Charset StandardCharsets)
            (java.net URLEncoder)))
 
 (defn ip-address? [s]
@@ -27,17 +28,8 @@
    [:protocol [:enum "HTTP/1.1" "HTTP/2"]]
    [:headers headers]])
 
-(defn generator
-  ([path] (generator path nil))
-  ([path overrides]
-   (generators/fmap
-     (fn [request]
-       (-> request
-           (meta-merge/meta-merge overrides)
-           (assoc :uri path)))
-     (malli.generator/generator schema))))
 
-(defn map->query-string [m]
+(defn- map->url-string [m]
   (->> m
        (map (fn [[k v]]
               (format "%s=%s"
@@ -46,18 +38,36 @@
                                          ^Charset StandardCharsets/UTF_8))))
        (string/join "&")))
 
-(defn create
-  ([path] (create path nil))
-  ([path search]
-   (let [base-request {:server-port    80
-                       :server-name    "localhost"
-                       :remote-addr    "192.168.0.1"
-                       :uri            path
-                       :scheme         :https
-                       :request-method :get
-                       :protocol       "HTTP/1.1"
-                       :headers        {"accept" "text/html"}}]
-     (if search
-       (assoc base-request :query-string (format "query=%s" (URLEncoder/encode ^String search
-                                                                               ^Charset StandardCharsets/UTF_8)))
-       base-request))))
+(defn- form-params->body [overrides]
+  (let [body (->> overrides
+                  (:form-params)
+                  (map->url-string)
+                  (StringReader.))]
+    (-> overrides
+        (assoc :body body)
+        (assoc-in [:headers "content-type"] "application/x-www-form-urlencoded")
+        (dissoc :form-params))))
+
+(defn- query-params->query-string [overrides]
+  (let [query-string (->> overrides
+                          (:query-params)
+                          (map->url-string))]
+    (-> overrides
+        (assoc :query-string query-string)
+        (dissoc :query-params))))
+
+(defn generator
+  ([path] (generator path nil))
+  ([path overrides]
+   (generators/fmap
+     (fn [request]
+       (let [overrides' (cond-> overrides
+                          (:form-params overrides) (form-params->body)
+                          (:query-params overrides) (query-params->query-string))]
+         (-> request
+             (meta-merge/meta-merge overrides')
+             (assoc :uri path))))
+     (malli.generator/generator schema))))
+
+(comment
+  )

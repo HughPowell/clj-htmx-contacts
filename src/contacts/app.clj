@@ -38,7 +38,7 @@
                                           :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (contacts/resource defaults contacts-storage)]
-                ["/contacts/new" (contacts.new/resource defaults)]]))
+                ["/contacts/new" (contacts.new/resource defaults contacts-storage)]]))
 
 (defn handler [contacts-storage]
   (ring/ring-handler

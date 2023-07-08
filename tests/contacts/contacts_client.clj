@@ -5,8 +5,8 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [clojure.test.check.properties :refer [for-all]]
-            [contacts.app :as app]
             [contacts.contacts :as sut]
+            [contacts.lib.app :as app]
             [contacts.lib.html :as html]
             [contacts.lib.oracle :as oracle]
             [contacts.lib.request :as request]
@@ -34,7 +34,7 @@
   ([path] (request/generator path))
   ([path search] (request-generator path search {}))
   ([path search opts]
-   (->> {:query-string (request/map->query-string {:query search})}
+   (->> {:query-params {:query search}}
         (merge opts)
         (request/generator path))))
 
@@ -79,17 +79,16 @@
                 rendered-contacts))))
 
 (defn- unmatched-contacts-are-not-rendered? [contacts request search]
-  (oracle/fixture
-    (let [response ((app/handler contacts) request)
-          rendered-contacts (-> response
-                                (:body)
-                                (enlive/html-snippet)
-                                (html/table->map [:first-name :last-name :phone :email])
-                                (set))
-          unrendered-contacts (remove (fn [contact] (contains? rendered-contacts (dissoc contact :id))) contacts)]
-      (every?
-        (fn [contact] (not-any? #(string/includes? % search) (vals (dissoc contact :id))))
-        unrendered-contacts))))
+  (let [response (app/make-call contacts request)
+        rendered-contacts (-> response
+                              (:body)
+                              (enlive/html-snippet)
+                              (html/table->map [:first-name :last-name :phone :email])
+                              (set))
+        unrendered-contacts (remove (fn [contact] (contains? rendered-contacts (dissoc contact :id))) contacts)]
+    (is (every?
+          (fn [contact] (not-any? #(string/includes? % search) (vals (dissoc contact :id))))
+          unrendered-contacts))))
 
 (defn- all-rendered-contacts-exist? [contacts request]
   (let [response (app/make-call contacts request)
