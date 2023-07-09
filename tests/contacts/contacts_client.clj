@@ -8,7 +8,6 @@
             [contacts.contacts :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
-            [contacts.lib.oracle :as oracle]
             [contacts.lib.request :as request]
             [idle.multiset.api :as mset]
             [net.cgrand.enlive-html :as enlive]
