@@ -99,6 +99,7 @@
 
 (defn resource [defaults contacts-storage]
   (liberator/resource defaults
+                      :handle-exception (fn [ctx] (clojure.pprint/pprint ctx))
                       :handle-ok (fn [{:keys [request]}]
                                    (let [contacts (retrieve contacts-storage)
                                          query (-> request

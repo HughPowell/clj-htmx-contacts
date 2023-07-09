@@ -8,6 +8,5 @@
 (defn oracle [] @oracle*)
 
 (defmacro fixture [& body]
-  (let [bindings (apply concat (oracle))]
-    `(with-redefs [~@bindings]
-       ~@body)))
+  `(with-redefs [~@(apply concat (oracle))]
+     ~@body))

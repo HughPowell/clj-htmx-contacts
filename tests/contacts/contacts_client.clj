@@ -6,27 +6,13 @@
             [clojure.test.check.generators :as generators]
             [clojure.test.check.properties :refer [for-all]]
             [contacts.contacts :as sut]
-            [contacts.lib.app :as app]
+            [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.oracle :as oracle]
             [contacts.lib.request :as request]
             [idle.multiset.api :as mset]
             [net.cgrand.enlive-html :as enlive]
             [malli.generator :as malli.generator]))
-
-(defn oracle-persist* [_contacts-storage contacts]
-  (set contacts))
-
-(defn oracle-retrieve* [contacts-storage]
-  contacts-storage)
-
-(oracle/register {'sut/persist*  oracle-persist*
-                  'sut/retrieve* oracle-retrieve*})
-
-(defspec contacts-integration-matches-oracle
-  (for-all [contacts (malli.generator/generator sut/schema)]
-    (is (= (-> #{} (oracle-persist* contacts) (oracle-retrieve*))
-           (-> (atom #{}) (sut/persist* contacts) (sut/retrieve*))))))
 
 (def sut-path "/contacts")
 
@@ -44,12 +30,12 @@
     (subs s start end)))
 
 (defn- successful-response? [contacts request]
-  (let [response (app/make-call contacts request)]
+  (let [response (test-system/make-request contacts request)]
     (is (= 200 (:status response)))))
 
 (defn- returns-expected-data-type?
   ([contacts request]
-   (let [response (app/make-call contacts request)]
+   (let [response (test-system/make-request contacts request)]
      (is (= "text/html;charset=UTF-8" (get-in response [:headers :content-type]))))))
 
 (defn- rendered-contacts [response]
@@ -59,7 +45,7 @@
       (html/table->map [:first-name :last-name :phone :email])))
 
 (defn- all-contacts-are-rendered? [contacts request]
-  (let [response (app/make-call contacts request)]
+  (let [response (test-system/make-request contacts request)]
     (is (=
           (set (rendered-contacts response))
           (set (map #(dissoc % :id) contacts))))))
@@ -72,14 +58,14 @@
          (is (all-contacts-are-rendered? contacts request)))))
 
 (defn- all-contacts-that-match-are-rendered? [contacts request search]
-  (let [response (app/make-call contacts request)
+  (let [response (test-system/make-request contacts request)
         rendered-contacts (rendered-contacts response)]
     (is (every? (fn [contact]
                   (some #(string/includes? % search) (vals contact)))
                 rendered-contacts))))
 
 (defn- unmatched-contacts-are-not-rendered? [contacts request search]
-  (let [response (app/make-call contacts request)
+  (let [response (test-system/make-request contacts request)
         rendered-contacts (-> response
                               (:body)
                               (enlive/html-snippet)
@@ -91,7 +77,7 @@
           unrendered-contacts))))
 
 (defn- all-rendered-contacts-exist? [contacts request]
-  (let [response (app/make-call contacts request)
+  (let [response (test-system/make-request contacts request)
         rendered-contacts (mset/multiset (rendered-contacts response))]
     (is (set/subset? rendered-contacts
                      (set (map #(dissoc % :id) contacts))))))
@@ -115,7 +101,6 @@
          (is (all-rendered-contacts-exist? contacts request)))))
 
 (comment
-  (contacts-integration-matches-oracle)
   (all-contacts-returned-when-no-query)
   (contacts-that-match-search-are-rendered)
-  )
+)

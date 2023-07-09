@@ -5,12 +5,12 @@
             [clojure.test.check.generators :as generators]
             [clojure.test.check.properties :refer [for-all]]
             [contacts.app :as app]
-            [contacts.lib.app :as lib.app]
+            [contacts.lib.test-system :as test-system]
             [contacts.lib.request :as request]
             [reitit.core :as reitit]))
 
 (defn- unsupported-media-type-response? [contacts request]
-  (let [{:keys [status]} (lib.app/make-call contacts request)]
+  (let [{:keys [status]} (test-system/make-request contacts request)]
     (is (= 406 status))))
 
 (defspec non-text-html-content-type-not-supported
@@ -23,7 +23,7 @@
 
 ;; test for not found
 (defn- non-existant-route-returns-not-found? [contacts request]
-  (let [{:keys [status]} (lib.app/make-call contacts request)]
+  (let [{:keys [status]} (test-system/make-request contacts request)]
     (is (= 404 status))))
 
 (defspec not-found-returned-for-unknown-paths
