@@ -1,13 +1,14 @@
 (ns contacts.contacts.new
-  (:require [contacts.contact :as contact]
+  (:require [clojure.string :as string]
+            [contacts.contact :as contact]
             [contacts.page :as page]
             [contacts.request :as request]
             [hiccup.form :as form]
             [liberator.core :as liberator]
+            [liberator.representation :as representation]
             [malli.core :as malli]
             [malli.error :as malli.error])
-  (:import (java.io StringReader)
-           (java.util UUID)))
+  (:import (java.util UUID)))
 
 ;; Schemas
 
@@ -20,24 +21,37 @@
 
 ;; Rendering
 
-(defn- input [name label type place-holder]
-  [:p
-   (form/label name label)
-   [:input {:name name :id name :type type :placeholder place-holder}]
-   [:span.error]])
+(defn- input
+  ([name label type place-holder] (input name label type place-holder nil nil))
+  ([name label type place-holder value] (input name label type place-holder value nil))
+  ([name label type place-holder value error]
+   [:p
+    (form/label name label)
+    [:input {:name name :id name :type type :placeholder place-holder :value value}]
+    [:span.error error]]))
 
-(defn- render []
-  (page/render
-    (list
-      (form/form-to [:post "/contacts/new"]
-                    [:fieldset
-                     [:legend "Contact Values"]
-                     (input "email" "Email" "email" "Email")
-                     (input "first-name" "First Name" "text" "First Name")
-                     (input "last-name" "Last Name" "text" "Last Name")
-                     (input "phone" "Phone" "text" "Phone")
-                     [:button "Save"]])
-      [:p [:a {:href "/contacts"} "Back"]])))
+(defn- ->human-readable-option-list [option-list]
+  (let [suffix (string/join " or " (take-last 2 option-list))]
+    (string/join ", " (conj (vec (drop-last 2 option-list)) suffix))))
+
+(defn- render
+  ([] (render nil nil))
+  ([contact errors]
+   (page/render
+     (list
+       (form/form-to [:post "/contacts/new"]
+                     [:fieldset
+                      [:legend "Contact Values"]
+                      (input "email" "Email" "email" "Email" (:email contact)
+                             (when-let [errors (:email errors)]
+                               (format "The email address %s." (->human-readable-option-list errors))))
+                      (input "first-name" "First Name" "text" "First Name" (:first-name contact))
+                      (input "last-name" "Last Name" "text" "Last Name" (:last-name contact))
+                      (input "phone" "Phone" "text" "Phone" (:phone contact)
+                             (when-let [errors (:phone errors)]
+                               (format "The number %s." (->human-readable-option-list errors))))
+                      [:button "Save"]])
+       [:p [:a {:href "/contacts"} "Back"]]))))
 
 ;; Persistence
 
@@ -57,22 +71,26 @@
 (defn resource [default contacts-storage]
   (liberator/resource default
                       :allowed-methods [:get :post]
-                      :processable? (fn [{:keys [request] {:keys [request-method]} :request}]
-                                      (let [request' (request/assoc-params request)
-                                            contact (:params request')]
-                                        (case request-method
-                                          :get {:request request'}
-                                          :post (if (malli/validate schema contact)
-                                                  {:request request'
-                                                   :contact contact}
-                                                  [false
-                                                   {:request           request'
-                                                    :validation-errors (malli/explain schema contact)}]))))
+                      :malformed? (fn [{:keys [request] {:keys [request-method]} :request}]
+                                    (let [request' (request/assoc-params request)
+                                          contact (:params request')]
+                                      (case request-method
+                                        :get [false {:request request'}]
+                                        :post (let [updates {:request request'
+                                                             :contact contact}]
+                                                (if (malli/validate schema contact)
+                                                  [false updates]
+                                                  [true (merge
+                                                          updates
+                                                          {:validation-errors (malli/explain schema contact)})])))))
                       :post-redirect? true
                       :location "/contacts"
                       :post! (fn [{:keys [contact]}]
                                (persist contacts-storage contact))
-                      :handle-unprocessable-entity (fn [{:keys [request validation-errors]}])
+                      :handle-malformed (fn [{:keys [contact validation-errors]}]
+                                          (representation/ring-response
+                                            (render contact (malli.error/humanize validation-errors))
+                                            {:headers {"Content-Type" "text/html"}}))
                       :handle-exception (fn [ctx] (clojure.pprint/pprint ctx))
                       :handle-ok (fn [_]
                                    (render))))
