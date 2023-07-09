@@ -1,7 +1,9 @@
 (ns contacts.storage-client
   (:require [clojure.test :refer [is]]
             [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.generators :as generators]
             [clojure.test.check.properties :refer [for-all]]
+            [contacts.contact :as contact]
             [contacts.contacts :as contacts]
             [contacts.contacts.new :as new]
             [contacts.lib.oracle :as oracle]
@@ -16,13 +18,15 @@
 (oracle/register {'contacts/persist*  oracle-persist-contacts*
                   'contacts/retrieve* oracle-retrieve*})
 
+(defn- retrieve-contacts [storage contacts]
+  (-> storage
+      (contacts/persist* contacts)
+      (contacts/retrieve*)))
+
 (defspec contacts-integration-matches-oracle
   (for-all [contacts (malli.generator/generator contacts/schema)]
-    (let [retrieve-contacts (fn [storage contacts] (-> storage
-                                                       (contacts/persist* contacts)
-                                                       (contacts/retrieve*)))]
-      (is (= (retrieve-contacts (atom #{}) contacts)
-             (oracle/fixture (retrieve-contacts #{} contacts)))))))
+    (is (= (retrieve-contacts (atom #{}) contacts)
+           (oracle/fixture (retrieve-contacts #{} contacts))))))
 
 (def id (atom 0))
 
@@ -35,7 +39,7 @@
 
 (oracle/register {'new/persist* oracle-persist-contact*})
 
-(defn- contact-data-is-identical? [sut oracle]
+(defn- contacts-data-is-identical? [sut oracle]
   (is (= (set (map #(dissoc % :id) sut))
          (set (map #(dissoc % :id) oracle)))))
 
@@ -43,19 +47,47 @@
   (is (= (count contacts)
          (count (set (map :id contacts))))))
 
+(defn- persist-contact [storage contacts contact]
+  (-> storage
+      (contacts/persist* contacts)
+      (new/persist* contact)
+      (contacts/retrieve*)))
+
 (defspec new-contact-integration-matches-oracle
   (for-all [contacts (malli.generator/generator contacts/schema)
             contact (malli.generator/generator new/schema)]
-    (let [persist-contact (fn [storage contacts contact] (-> storage
-                                                             (contacts/persist* contacts)
-                                                             (new/persist* contact)
-                                                             (contacts/retrieve*)))
-          sut-results (persist-contact (atom #{}) contacts contact)
+    (let [sut-results (persist-contact (atom #{}) contacts contact)
           oracle-results (oracle/fixture (persist-contact #{} contacts contact))]
-      (and (is (contact-data-is-identical? sut-results oracle-results))
+      (and (is (contacts-data-is-identical? sut-results oracle-results))
            (is (ids-are-unique? sut-results))
            (is (ids-are-unique? oracle-results))))))
 
+(defn oracle-retrieve-contact* [contacts-storage requested-id]
+  (first (filter (fn [{:keys [id]}] (= requested-id id)) contacts-storage)))
+
+(oracle/register {'contact/retrieve* oracle-retrieve-contact*})
+
+(defn- contact-data-is-identical [sut oracle]
+  (is (= (dissoc sut :id)
+         (dissoc oracle :id))))
+
+(defn- retrieve-contact [storage contacts id]
+  (-> storage
+      (contacts/persist* contacts)
+      (contact/retrieve* id)))
+
+(defspec retrieve-contact-integration-matches-oracle
+  (for-all [[contacts id] (generators/let [contacts (generators/such-that
+                                                      seq
+                                                      (malli.generator/generator contacts/schema))
+                                           id (generators/elements (map :id contacts))]
+                            [contacts id])]
+    (let [sut-results (retrieve-contact (atom #{}) contacts id)
+          oracle-results (oracle/fixture (retrieve-contact #{} contacts id))]
+      (is (contact-data-is-identical sut-results oracle-results)))))
+
 (comment
   (contacts-integration-matches-oracle)
-  (new-contact-integration-matches-oracle))
+  (new-contact-integration-matches-oracle)
+  (retrieve-contact-integration-matches-oracle)
+  )

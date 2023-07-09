@@ -5,7 +5,6 @@
             [clojure.test.check.properties :refer [for-all]]
             [contacts.app :as app]
             [contacts.contacts :as contacts]
-            [contacts.contacts.new :as new]
             [contacts.contacts.new :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
@@ -13,12 +12,14 @@
             [malli.core :as malli]
             [net.cgrand.enlive-html :as enlive]))
 
-(defn- new-contact-form-is-returned-ok? [contacts request]
-  (let [{:keys [status]} (test-system/make-request contacts request)]
-    (is (= 200 status))))
+(def ^:private sut-path "/contacts/new")
+(def ^:private contact-list-path "/contacts")
 
-(defn- new-form-is-empty? [contacts request]
-  (let [inputs-with-values (-> (test-system/make-request contacts request)
+(defn- new-contact-form-is-returned-ok? [{:keys [status]}]
+  (is (= 200 status)))
+
+(defn- new-form-is-empty? [response]
+  (let [inputs-with-values (-> response
                                (:body)
                                (enlive/html-snippet)
                                (enlive/select [[:input (enlive/attr? :value)]]))]
@@ -26,27 +27,28 @@
 
 (defspec getting-a-new-contact-form-provides-an-empty-form
   (for-all [contacts (malli.generator/generator contacts/schema)
-            request (request/generator "/contacts/new")]
-    (and (is (new-contact-form-is-returned-ok? contacts request))
-         (is (new-form-is-empty? contacts request)))))
+            request (request/generator sut-path)]
+    (let [response (test-system/make-request contacts request)]
+      (and (is (new-contact-form-is-returned-ok? response))
+           (is (new-form-is-empty? response))))))
 
 (defn- saving-contact-redirects-to-contact-list? [{:keys [status headers]}]
   (and (is (= 303 status))
-       (is (= "/contacts" (:location headers)))))
-(defn- saved-contact-is-in-contacts-list? [contacts contact {:keys [status body]}]
-  (let [snippet (enlive/html-snippet body)]
-    (and (is (= 200 status))
-         (is (set (html/table->map snippet [:first-name :last-name :phone :email]))
-             (set (map #(dissoc % :id) (conj contacts contact)))))))
+       (is (= contact-list-path (:location headers)))))
+
+(defn- saved-contact-is-in-contacts-list? [contacts contact {:keys [status] :as response}]
+  (and (is (= 200 status))
+       (is (set (html/rendered-contacts response))
+           (set (conj contacts contact)))))
 
 (defspec adding-new-contact-adds-contact-to-contacts-list
   (for-all [contacts (malli.generator/generator contacts/schema)
             [contact save-contact-request contact-list-request]
             (generators/let [contact (malli.generator/generator sut/schema)
-                             save-contact-request (request/generator "/contacts/new"
+                             save-contact-request (request/generator sut-path
                                                                      {:request-method :post
                                                                       :form-params    contact})
-                             contact-list-request (request/generator "/contacts")]
+                             contact-list-request (request/generator contact-list-path)]
               [contact save-contact-request contact-list-request])]
     (let [app (app/handler (contacts.app/init-contacts-storage contacts))
           save-contact-response (test-system/keyword-headers (app save-contact-request))
@@ -69,21 +71,21 @@
                               (into {}))]
     (is (= contact rendered-contact))))
 
-(defn- errors-displayed-only-for-invalid-fields? [invalid-contact invalid-contact-response]
+(defn- errors-displayed-only-for-all-invalid-fields? [invalid-contact invalid-contact-response]
   (let [input-and-error-tags (-> invalid-contact-response
                                  (:body)
                                  (enlive/html-snippet)
                                  (enlive/select [:fieldset #{:input :span.error}]))
-        error-ids (->> invalid-contact
-                       (malli/explain new/schema)
-                       (:errors)
-                       (map (comp first :in))
-                       (set))
         id->error (->> input-and-error-tags
                        (partition 2)
                        (map (fn [[{{:keys [id]} :attrs} error]]
                               [(keyword id) (not-empty (enlive/text error))]))
-                       (into {}))]
+                       (into {}))
+        error-ids (->> invalid-contact
+                       (malli/explain sut/schema)
+                       (:errors)
+                       (map (comp first :in))
+                       (set))]
     (is (every? id->error error-ids))
     (is (every? nil? (vals (apply dissoc id->error error-ids))))))
 
@@ -97,16 +99,16 @@
                                                    [:email :string]]
                                                   (malli.generator/generator)
                                                   (generators/such-that
-                                                    (fn [contact] (not (malli/validate new/schema contact)))))
+                                                    (fn [contact] (not (malli/validate sut/schema contact)))))
                              invalid-contact-request (->> invalid-contact
                                                           (hash-map :request-method :post :form-params)
-                                                          (request/generator "/contacts/new"))]
+                                                          (request/generator sut-path))]
               [invalid-contact invalid-contact-request])]
     (let [invalid-contact-response (test-system/make-request contacts invalid-contact-request)]
       (and
         (is (saving-contact-results-in-client-error? invalid-contact-response))
         (is (original-data-is-displayed? invalid-contact invalid-contact-response))
-        (is (errors-displayed-only-for-invalid-fields? invalid-contact invalid-contact-response))))))
+        (is (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))))
 
 (comment
   (getting-a-new-contact-form-provides-an-empty-form)

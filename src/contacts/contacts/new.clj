@@ -91,6 +91,5 @@
                                           (representation/ring-response
                                             (render contact (malli.error/humanize validation-errors))
                                             {:headers {"Content-Type" "text/html"}}))
-                      :handle-exception (fn [ctx] (clojure.pprint/pprint ctx))
                       :handle-ok (fn [_]
                                    (render))))

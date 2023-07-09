@@ -7,3 +7,17 @@
     (map (fn [node] (when (string? node) node)))
     (partition (count headers))
     (map (fn [contact] (into {} (map #(vector %1 (str %2)) headers contact))))))
+
+(defn rendered-contacts [response]
+  (let [body (-> response
+                 (:body)
+                 (enlive/html-snippet))
+        contact-data (table->map body [:first-name :last-name :phone :email])
+        contact-ids (->> (enlive/select body [:table :tr :> :td :> :a])
+                         (map (fn [{:keys [attrs]}] (:href attrs)))
+                         (partition 2)
+                         (map (fn [[edit view]] (let [edit-id (second (re-seq #"[^/]+" edit))
+                                                      view-id (second (re-seq #"[^/]+" view))]
+                                                  (when (= edit-id view-id)
+                                                    edit-id)))))]
+    (map (fn [contact id] (assoc contact :id id)) contact-data contact-ids)))
