@@ -62,21 +62,21 @@
       (is (ids-are-unique? sut-results))
       (is (ids-are-unique? oracle-results)))))
 
-#_(defn oracle-retrieve-contact* [contacts-storage requested-id]
+(defn oracle-retrieve-contact* [contacts-storage requested-id]
   (first (filter (fn [{:keys [id]}] (= requested-id id)) contacts-storage)))
 
-#_(oracle/register {'contact/retrieve* oracle-retrieve-contact*})
+(oracle/register {'contact/retrieve* oracle-retrieve-contact*})
 
-#_(defn- contact-data-is-identical [sut oracle]
+(defn- contact-data-is-identical [sut oracle]
   (is (= (dissoc sut :id)
          (dissoc oracle :id))))
 
-#_(defn- retrieve-contact [storage contacts id]
+(defn- retrieve-contact [storage contacts id]
   (-> storage
       (contacts/persist* contacts)
       (contact/retrieve* id)))
 
-#_(defspec retrieve-contact-integration-matches-oracle
+(defspec retrieve-contact-integration-matches-oracle
   (for-all [contacts (generators/such-that
                        seq
                        (malli.generator/generator contacts/schema))
@@ -88,5 +88,5 @@
 (comment
   (contacts-integration-matches-oracle)
   (new-contact-integration-matches-oracle)
-  #_(retrieve-contact-integration-matches-oracle)
+  (retrieve-contact-integration-matches-oracle)
   )

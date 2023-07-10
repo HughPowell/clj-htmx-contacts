@@ -5,4 +5,5 @@
 (defn assoc-params [request]
   (-> request
       (params/params-request)
+      (update :params merge (:path-params request))
       (update :params update-keys camel-snake-kebab/->kebab-case-keyword)))
