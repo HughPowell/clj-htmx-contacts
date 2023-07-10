@@ -1,8 +1,8 @@
-(ns contacts.contacts.new-client
+(ns contacts.contacts.new-spec
   (:require [clojure.test :refer [is]]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
-            [clojure.test.check.properties :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
             [contacts.contacts :as contacts]
             [contacts.contacts.new :as sut]
@@ -43,19 +43,16 @@
 
 (defspec adding-new-contact-adds-contact-to-contacts-list
   (for-all [contacts (malli.generator/generator contacts/schema)
-            [contact save-contact-request contact-list-request]
-            (generators/let [contact (malli.generator/generator sut/schema)
-                             save-contact-request (request/generator sut-path
-                                                                     {:request-method :post
-                                                                      :form-params    contact})
-                             contact-list-request (request/generator contact-list-path)]
-              [contact save-contact-request contact-list-request])]
+            contact (malli.generator/generator sut/schema)
+            save-contact-request (request/generator sut-path
+                                                    {:request-method :post
+                                                     :form-params    contact})
+            contact-list-request (request/generator contact-list-path)]
     (let [app (app/handler (contacts.app/init-contacts-storage contacts))
           save-contact-response (test-system/keyword-headers (app save-contact-request))
           contact-list-response (app contact-list-request)]
-      (and
-        (is (saving-contact-redirects-to-contact-list? save-contact-response))
-        (is (saved-contact-is-in-contacts-list? contacts contact contact-list-response))))))
+      (is (saving-contact-redirects-to-contact-list? save-contact-response))
+      (is (saved-contact-is-in-contacts-list? contacts contact contact-list-response)))))
 
 (defn- saving-contact-results-in-client-error? [{:keys [status]}]
   (is (= 400 status)))
@@ -91,24 +88,21 @@
 
 (defspec adding-invalid-contact-returns-to-editing-screen
   (for-all [contacts (malli.generator/generator contacts/schema)
-            [invalid-contact invalid-contact-request]
-            (generators/let [invalid-contact (->> [:map
-                                                   [:first-name :string]
-                                                   [:last-name :string]
-                                                   [:phone :string]
-                                                   [:email :string]]
-                                                  (malli.generator/generator)
-                                                  (generators/such-that
-                                                    (fn [contact] (not (malli/validate sut/schema contact)))))
-                             invalid-contact-request (->> invalid-contact
-                                                          (hash-map :request-method :post :form-params)
-                                                          (request/generator sut-path))]
-              [invalid-contact invalid-contact-request])]
+            invalid-contact (->> [:map
+                                  [:first-name :string]
+                                  [:last-name :string]
+                                  [:phone :string]
+                                  [:email :string]]
+                                 (malli.generator/generator)
+                                 (generators/such-that
+                                   (fn [contact] (not (malli/validate sut/schema contact)))))
+            invalid-contact-request (->> invalid-contact
+                                         (hash-map :request-method :post :form-params)
+                                         (request/generator sut-path))]
     (let [invalid-contact-response (test-system/make-request contacts invalid-contact-request)]
-      (and
-        (is (saving-contact-results-in-client-error? invalid-contact-response))
-        (is (original-data-is-displayed? invalid-contact invalid-contact-response))
-        (is (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))))
+      (is (saving-contact-results-in-client-error? invalid-contact-response))
+      (is (original-data-is-displayed? invalid-contact invalid-contact-response))
+      (is (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response)))))
 
 (comment
   (getting-a-new-contact-form-provides-an-empty-form)

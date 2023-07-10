@@ -1,8 +1,8 @@
-(ns contacts.storage-client
+(ns contacts.storage-oracle
   (:require [clojure.test :refer [is]]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
-            [clojure.test.check.properties :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.contact :as contact]
             [contacts.contacts :as contacts]
             [contacts.contacts.new :as new]
@@ -58,9 +58,9 @@
             contact (malli.generator/generator new/schema)]
     (let [sut-results (persist-contact (atom #{}) contacts contact)
           oracle-results (oracle/fixture (persist-contact #{} contacts contact))]
-      (and (is (contacts-data-is-identical? sut-results oracle-results))
-           (is (ids-are-unique? sut-results))
-           (is (ids-are-unique? oracle-results))))))
+      (is (contacts-data-is-identical? sut-results oracle-results))
+      (is (ids-are-unique? sut-results))
+      (is (ids-are-unique? oracle-results)))))
 
 (defn oracle-retrieve-contact* [contacts-storage requested-id]
   (first (filter (fn [{:keys [id]}] (= requested-id id)) contacts-storage)))
@@ -77,11 +77,10 @@
       (contact/retrieve* id)))
 
 (defspec retrieve-contact-integration-matches-oracle
-  (for-all [[contacts id] (generators/let [contacts (generators/such-that
-                                                      seq
-                                                      (malli.generator/generator contacts/schema))
-                                           id (generators/elements (map :id contacts))]
-                            [contacts id])]
+  (for-all [contacts (generators/such-that
+                       seq
+                       (malli.generator/generator contacts/schema))
+            id (generators/elements (map :id contacts))]
     (let [sut-results (retrieve-contact (atom #{}) contacts id)
           oracle-results (oracle/fixture (retrieve-contact #{} contacts id))]
       (is (contact-data-is-identical sut-results oracle-results)))))
