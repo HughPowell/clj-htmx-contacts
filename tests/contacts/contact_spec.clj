@@ -18,7 +18,7 @@
 
 (defn- contact-is-rendered? [contact response]
   (let [snippet (-> response :body enlive/html-snippet)
-        full-name (first (enlive/select snippet [:main :> :h1 enlive/text]))
+        full-name (str (first (enlive/select snippet [:main :> :h1 enlive/text])))
         [phone-number email] (map (fn [s] (str (second (string/split s #": "))))
                                   (enlive/select snippet [:main :> :div :> :div enlive/text]))
         edit-link (get-in (first (enlive/select snippet [:main :p :> :a])) [:attrs :href])]
@@ -54,4 +54,5 @@
 
 (comment
   (retrieving-a-contact-displays-it)
-  (non-existent-contact-not-found))
+  (non-existent-contact-not-found)
+  )
