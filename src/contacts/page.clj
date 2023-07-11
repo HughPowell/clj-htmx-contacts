@@ -3,18 +3,20 @@
             [hiccup.form :as form]
             [hiccup.page :as page]))
 
-(defn render [content]
+(defn render [flash content]
   (page/html5
     {:lang "en"}
     [:head
      [:title "Contact App"]
-     (page/include-css "/public/missing.min.css")]
+     (page/include-css "/public/missing.min.css")
+     (page/include-css "/public/site.css")]
     [:body
      [:main
       [:header
        [:h1
         [:all-caps "contacts.app"]
         [:sub-title "A Demo Contacts Application"]]]
+      (when flash [:div.flash flash])
       content]]))
 
 (defelem search-field

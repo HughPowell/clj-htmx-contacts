@@ -65,8 +65,9 @@
 (defn- add-contact []
   [:p (element/link-to "/contacts/new" "Add Contact")])
 
-(defn render [contacts query]
+(defn render [request contacts query]
   (page/render
+    (:flash request)
     (list
       (search-form query)
       (table contacts)
@@ -104,9 +105,10 @@
                                          query (-> request
                                                    (request/assoc-params)
                                                    (get-in [:params :query]))]
-                                     (-> contacts
-                                         (find query)
-                                         (render query))))))
+                                     (render
+                                       request
+                                       (find contacts query)
+                                       query)))))
 
 (comment
   )

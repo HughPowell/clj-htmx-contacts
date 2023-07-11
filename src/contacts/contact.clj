@@ -26,15 +26,17 @@
 
 ;; Rendering
 
-(defn- render [{:keys [id first-name last-name phone email]}]
-  (list
-    [:h1 (string/trim (format "%s %s" first-name last-name))]
-    [:div
-     [:div (format "Phone: %s" phone)]
-     [:div (format "Email: %s" email)]]
-    [:p
-     [:a {:href (format "/contacts/%s/edit" id)} "Edit"]
-     [:a {:href "/contacts"} "Back"]]))
+(defn- render [request {:keys [id first-name last-name phone email]}]
+  (page/render
+    (:flash request)
+    (list
+      [:h1 (string/trim (format "%s %s" first-name last-name))]
+      [:div
+       [:div (format "Phone: %s" phone)]
+       [:div (format "Email: %s" email)]]
+      [:p
+       [:a {:href (format "/contacts/%s/edit" id)} "Edit"]
+       [:a {:href "/contacts"} "Back"]])))
 
 ;; Persistence
 
@@ -57,6 +59,5 @@
                                    (if-let [contact (retrieve contacts-storage (get-in request' [:params :id]))]
                                      [true (merge updates {:contact contact})]
                                      [false updates])))
-                      :handle-ok (fn [{:keys [contact]}]
-                                   (page/render
-                                     (render contact)))))
+                      :handle-ok (fn [{:keys [request contact]}]
+                                   (render request contact))))
