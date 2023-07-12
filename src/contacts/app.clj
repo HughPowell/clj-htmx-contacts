@@ -2,7 +2,7 @@
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
             [contacts.contact.new :as contact.new]
-            #_[contacts.contact.edit :as edit]
+            [contacts.contact.edit :as edit]
             [contacts.contacts :as contacts]
             [clojure.java.io :as io]
             [contacts.page :as page]
@@ -38,8 +38,8 @@
                                        (get-in request [:headers "accept"]))
                                "This server only serves HTML."
                                "Please re-request with Content-Type of text/html, text/* or */*."]))
-   :handle-not-found      could-not-find-it
-   :handle-exception      we-messed-up})
+   :handle-not-found      (fn [{:keys [request]}] (could-not-find-it request))
+   :handle-exception      (fn [{:keys [request]}] (we-messed-up request))})
 
 (defn router [contacts-storage]
   (ring/router [["/" (resource defaults
@@ -48,23 +48,23 @@
                        :moved-temporarily? true
                        :location "/contacts")]
                 ["/favicon.ico" (resource :available-media-types ["image/x-icon"]
-                                          :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
+                                                                 :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (contacts/resource defaults contacts-storage)]
                 ["/contacts/new" {:conflicting true
                                   :handler     (contact.new/resource defaults contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
                                   :handler     (contact/resource defaults contacts-storage)}]
-                #_["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
+                ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
 
 (defn handler [contacts-storage]
   (ring/ring-handler
     (router contacts-storage)
     (ring/create-default-handler
-      {:not-found      (constantly {:status 404
-                                    :body   could-not-find-it})
-       :not-acceptable (constantly {:status 500
-                                    :body   we-messed-up})})
+      {:not-found      (fn [request] {:status 404
+                                      :body   (could-not-find-it request)})
+       :not-acceptable (fn [request] {:status 500
+                                      :body   (we-messed-up request)})})
     {:middleware     [session/wrap-session
                       flash/wrap-flash]
      :inject-match?  false

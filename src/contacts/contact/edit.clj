@@ -20,7 +20,6 @@
 ;; Rendering
 
 (defn- input
-  ([name label type place-holder] (input name label type place-holder nil nil))
   ([name label type place-holder value] (input name label type place-holder value nil))
   ([name label type place-holder value error]
    [:p
