@@ -1,8 +1,9 @@
 (ns contacts.app
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
-            [contacts.contact.new :as contact.new]
+            [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
+            [contacts.contact.new :as contact.new]
             [contacts.contacts :as contacts]
             [clojure.java.io :as io]
             [contacts.page :as page]
@@ -56,7 +57,8 @@
                                   :handler     (contact.new/resource defaults contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
                                   :handler     (contact/resource defaults contacts-storage)}]
-                ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
+                ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]
+                ["/contacts/:id/delete" (delete/resource defaults contacts-storage)]]))
 
 (defn handler [contacts-storage]
   (let [router (router contacts-storage)]

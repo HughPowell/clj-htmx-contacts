@@ -4,6 +4,7 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.contact :as contact]
+            [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
             [contacts.contact.new :as new]
             [contacts.contacts :as contacts]
@@ -91,7 +92,7 @@
     (remove (fn [{:keys [id]}] (= (:id updated-contact) id)) contacts-storage)
     updated-contact))
 
-(oracle/register {'edit/persist* oracle-edit-persist-contact*
+(oracle/register {'edit/persist*  oracle-edit-persist-contact*
                   'edit/retrieve* oracle-retrieve-contact*})
 
 (defn- update-contact [storage contacts updated-contact]
@@ -114,9 +115,29 @@
           oracle-results (oracle/fixture (update-contact #{} contacts updated-contact))]
       (contacts-are-identical? sut-results oracle-results))))
 
+(defn oracle-delete-contact* [contacts-storage contact-id]
+  (remove (fn [{:keys [id]}] (= contact-id id)) contacts-storage))
+
+(oracle/register {'delete/retrieve* oracle-retrieve-contact*
+                  'delete/delete*   oracle-delete-contact*})
+
+(defn- delete-contact [storage contacts contact-id]
+  (-> storage
+      (contacts/persist* contacts)
+      (delete/delete* contact-id)
+      (contacts/retrieve*)))
+
+(defspec delete-contact-integration-matches-oracle
+  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+            id (generators/fmap :id (generators/elements contacts))]
+    (let [sut-results (delete-contact (atom #{}) contacts id)
+          oracle-results (oracle/fixture (delete-contact #{} contacts id))]
+      (contacts-are-identical? sut-results oracle-results))))
+
 (comment
   (contacts-integration-matches-oracle)
   (new-contact-integration-matches-oracle)
   (retrieve-contact-integration-matches-oracle)
   (persist-update-to-contact-integration-matches-oracle)
+  (delete-contact-integration-matches-oracle)
   )

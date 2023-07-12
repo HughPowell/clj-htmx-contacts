@@ -5,6 +5,7 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
+            [contacts.contact :as contact]
             [contacts.contacts :as contacts]
             [contacts.contact.edit :as sut]
             [contacts.lib.test-system :as test-system]
@@ -110,8 +111,26 @@
       (original-data-is-displayed? invalid-contact invalid-contact-response)
       (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))
 
+(defn- non-existent-contact-not-found? [{:keys [status]}]
+  (is (= 404 status)))
+
+(defspec updating-non-existent-contact-fails
+  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+            id (generators/such-that
+                 (fn [id]
+                   (and (seq id)
+                        (not (contains? (set (map :id contacts)) id))))
+                 generators/string-alphanumeric)
+            contact-data (malli.generator/generator contact/schema)
+            request (request/generator (format sut-path-format id)
+                                       {:request-method :post
+                                        :form-params    contact-data})]
+    (let [response (test-system/make-oracle-request contacts request)]
+      (non-existent-contact-not-found? response))))
+
 (comment
   (renders-an-editable-contact)
   (updating-contact-updates-contact-in-contacts-list)
   (updating-contact-with-invalid-data-returns-to-editing-screen)
+  (updating-non-existent-contact-fails)
   )

@@ -2,11 +2,11 @@
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
             [contacts.page :as page]
-            [contacts.request :as request]
             [hiccup.form :as form]
             [liberator.core :as liberator]
             [liberator.representation :as representation]
-            [malli.core :as malli]))
+            [malli.core :as malli]
+            [malli.error :as malli.error]))
 
 ;; Schemas
 
@@ -101,10 +101,11 @@
                (if-let [contact (retrieve contacts-storage (get-in request [:params :id]))]
                  [true {:original-contact contact}]
                  false))
-    :post-redirect? true
-    :location "/contacts"
+    :can-post-to-missing? false
     :post! (fn [{:keys [new-contact]}]
              (persist contacts-storage new-contact))
+    :post-redirect? true
+    :location "/contacts"
     :handle-exception (fn [ctx]
                         (clojure.pprint/pprint ctx))
     :handle-see-other (representation/ring-response
