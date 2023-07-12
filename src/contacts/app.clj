@@ -3,7 +3,7 @@
             [contacts.contact :as contact]
             [contacts.contacts :as contacts]
             [contacts.contacts.new :as contacts.new]
-            [contacts.contacts.edit :as edit]
+            #_[contacts.contacts.edit :as edit]
             [clojure.java.io :as io]
             [contacts.page :as page]
             [liberator.core :refer [resource]]
@@ -55,7 +55,7 @@
                                   :handler     (contacts.new/resource defaults contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
                                   :handler     (contact/resource defaults contacts-storage)}]
-                ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
+                #_["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
 
 (defn handler [contacts-storage]
   (ring/ring-handler

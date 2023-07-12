@@ -40,7 +40,7 @@
 (defspec all-contacts-returned-when-no-query
   (for-all [contacts (malli.generator/generator sut/schema)
             request (request-generator sut-path)]
-    (let [response (test-system/make-request contacts request)]
+    (let [response (test-system/make-oracle-request contacts request)]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
       (is (all-contacts-are-rendered? contacts response)))))
@@ -74,7 +74,7 @@
                       generators/string-alphanumeric)
             search (substring-generator string')
             request (request-generator sut-path search)]
-    (let [response (test-system/make-request contacts request)]
+    (let [response (test-system/make-oracle-request contacts request)]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
       (is (all-contacts-that-match-are-rendered? response search))

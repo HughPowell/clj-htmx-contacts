@@ -3,12 +3,25 @@
             [camel-snake-kebab.extras :as camel-snake-kebab.extras]
             [contacts.app :as app]
             [contacts.lib.oracle :as oracle]
-            [contacts.storage-oracle]))
+            [contacts.storage-oracle]
+            [net.cgrand.enlive-html :as enlive])
+  (:import (java.io StringReader)))
 
-(defn keyword-headers [request]
+(defn- keywordise-headers [request]
   (update request :headers #(camel-snake-kebab.extras/transform-keys camel-snake-kebab/->kebab-case-keyword %)))
 
-(defn make-request [contacts request]
-  (oracle/fixture
-    (-> ((app/handler contacts) request)
-        (keyword-headers))))
+(defn- parse-body [request]
+  (cond-> request
+    (:body request) (update :body enlive/html-snippet)))
+
+(defn make-real-request [contacts request]
+  (let [request' (cond-> request
+                   (string? (:body request)) (update :body #(StringReader. %)))
+        call (app/handler contacts)]
+    (-> request'
+        (call)
+        (keywordise-headers)
+        (parse-body))))
+
+(defn make-oracle-request [contacts request]
+  (oracle/fixture (make-real-request contacts request)))

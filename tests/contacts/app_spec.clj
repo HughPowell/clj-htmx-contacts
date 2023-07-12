@@ -18,7 +18,7 @@
                              (not (#{"text/html" "text/*" "*/*"} (string/trim content-type))))
                            generators/string-alphanumeric)
             request (request/generator "/" {:headers {"accept" content-type}})]
-    (let [response (test-system/make-request #{} request)]
+    (let [response (test-system/make-oracle-request #{} request)]
       (is (unsupported-media-type-response? response)))))
 
 (defn- non-existant-route-returns-not-found? [{:keys [status]}]
@@ -34,7 +34,7 @@
                        (not (contains? existing-routes path))))
                    generators/string-alphanumeric)
             request (request/generator path)]
-    (let [response (test-system/make-request #{} request)]
+    (let [response (test-system/make-oracle-request #{} request)]
       (is (non-existant-route-returns-not-found? response)))))
 
 ;; spec for uncaught exceptions

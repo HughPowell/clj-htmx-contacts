@@ -21,14 +21,13 @@
 (defn- new-form-is-empty? [response]
   (let [inputs-with-values (-> response
                                (:body)
-                               (enlive/html-snippet)
                                (enlive/select [[:input (enlive/attr? :value)]]))]
     (is (empty? inputs-with-values))))
 
 (defspec getting-a-new-contact-form-provides-an-empty-form
   (for-all [contacts (malli.generator/generator contacts/schema)
             request (request/generator sut-path)]
-    (let [response (test-system/make-request contacts request)]
+    (let [response (test-system/make-oracle-request contacts request)]
       (and (is (new-contact-form-is-returned-ok? response))
            (is (new-form-is-empty? response))))))
 
@@ -48,9 +47,9 @@
                                                     {:request-method :post
                                                      :form-params    contact})
             contact-list-request (request/generator contact-list-path)]
-    (let [app (app/handler (contacts.app/init-contacts-storage contacts))
-          save-contact-response (test-system/keyword-headers (app save-contact-request))
-          contact-list-response (app contact-list-request)]
+    (let [contacts-storage (app/init-contacts-storage contacts)
+          save-contact-response (test-system/make-real-request contacts-storage save-contact-request)
+          contact-list-response (test-system/make-real-request contacts-storage contact-list-request)]
       (is (saving-contact-redirects-to-contact-list? save-contact-response))
       (is (saved-contact-is-in-contacts-list? contacts contact contact-list-response)))))
 
@@ -60,7 +59,6 @@
 (defn- original-data-is-displayed? [contact invalid-contact-response]
   (let [input-tags (-> invalid-contact-response
                        (:body)
-                       (enlive/html-snippet)
                        (enlive/select [:fieldset :input]))
         rendered-contact (->> input-tags
                               (map (fn [k tag] [k (get-in tag [:attrs :value])])
@@ -68,12 +66,8 @@
                               (into {}))]
     (is (= contact rendered-contact))))
 
-(defn- errors-displayed-only-for-all-invalid-fields? [invalid-contact invalid-contact-response]
-  (let [input-and-error-tags (-> invalid-contact-response
-                                 (:body)
-                                 (enlive/html-snippet)
-                                 (enlive/select [:fieldset #{:input :span.error}]))
-        id->error (->> input-and-error-tags
+(defn- errors-displayed-only-for-all-invalid-fields? [invalid-contact {:keys [body]}]
+  (let [id->error (->> (enlive/select body [:fieldset #{:input :span.error}])
                        (partition 2)
                        (map (fn [[{{:keys [id]} :attrs} error]]
                               [(keyword id) (not-empty (enlive/text error))]))
@@ -99,10 +93,10 @@
             invalid-contact-request (->> invalid-contact
                                          (hash-map :request-method :post :form-params)
                                          (request/generator sut-path))]
-    (let [invalid-contact-response (test-system/make-request contacts invalid-contact-request)]
-      (is (saving-contact-results-in-client-error? invalid-contact-response))
-      (is (original-data-is-displayed? invalid-contact invalid-contact-response))
-      (is (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response)))))
+    (let [invalid-contact-response (test-system/make-oracle-request contacts invalid-contact-request)]
+      (saving-contact-results-in-client-error? invalid-contact-response)
+      (original-data-is-displayed? invalid-contact invalid-contact-response)
+      (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))
 
 (comment
   (getting-a-new-contact-form-provides-an-empty-form)

@@ -3,8 +3,7 @@
             [clojure.test.check.generators :as generators]
             [malli.generator :as malli.generator]
             [meta-merge.core :as meta-merge])
-  (:import (java.io StringReader)
-           (java.nio.charset Charset StandardCharsets)
+  (:import (java.nio.charset Charset StandardCharsets)
            (java.net URLEncoder)))
 
 (defn ip-address? [s]
@@ -41,8 +40,7 @@
 (defn- form-params->body [overrides]
   (let [body (->> overrides
                   (:form-params)
-                  (map->url-string)
-                  (StringReader.))]
+                  (map->url-string))]
     (-> overrides
         (assoc :body body)
         (assoc-in [:headers "content-type"] "application/x-www-form-urlencoded")

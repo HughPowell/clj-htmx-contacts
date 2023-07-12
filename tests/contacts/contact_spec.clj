@@ -16,12 +16,11 @@
   (is (= 200 status))
   (is (= "text/html;charset=UTF-8" (:content-type headers))))
 
-(defn- contact-is-rendered? [contact response]
-  (let [snippet (-> response :body enlive/html-snippet)
-        full-name (str (first (enlive/select snippet [:main :> :h1 enlive/text])))
+(defn- contact-is-rendered? [contact {:keys [body]}]
+  (let [full-name (str (first (enlive/select body [:main :> :h1 enlive/text])))
         [phone-number email] (map (fn [s] (str (second (string/split s #": "))))
-                                  (enlive/select snippet [:main :> :div :> :div enlive/text]))
-        edit-link (get-in (first (enlive/select snippet [:main :p :> :a])) [:attrs :href])]
+                                  (enlive/select body [:main :> :div :> :div enlive/text]))
+        edit-link (get-in (first (enlive/select body [:main :p :> :a])) [:attrs :href])]
     (is (string/starts-with? full-name (:first-name contact)))
     (is (string/ends-with? full-name (:last-name contact)))
     (is (= (:phone contact) phone-number))
@@ -32,7 +31,7 @@
   (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
             contact (generators/elements contacts)
             request (request/generator (format sut-path-format (:id contact)))]
-    (let [response (test-system/make-request contacts request)]
+    (let [response (test-system/make-oracle-request contacts request)]
       (is (successfully-returns-html? response))
       (is (contact-is-rendered? contact response)))))
 
@@ -49,7 +48,7 @@
                      (not (contains? (set (map :id contacts)) id))))
                  generators/string-alphanumeric)
             request (request/generator (format sut-path-format id))]
-    (let [response (test-system/make-request contacts request)]
+    (let [response (test-system/make-oracle-request contacts request)]
       (is (not-found-html? response)))))
 
 (comment
