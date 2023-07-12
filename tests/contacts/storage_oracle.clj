@@ -4,8 +4,9 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.contact :as contact]
+            [contacts.contact.edit :as edit]
+            [contacts.contact.new :as new]
             [contacts.contacts :as contacts]
-            [contacts.contacts.new :as new]
             [contacts.lib.oracle :as oracle]
             [malli.generator :as malli.generator]))
 

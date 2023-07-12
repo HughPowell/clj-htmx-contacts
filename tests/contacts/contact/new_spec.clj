@@ -1,11 +1,11 @@
-(ns contacts.contacts.new-spec
+(ns contacts.contact.new-spec
   (:require [clojure.test :refer [is]]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
+            [contacts.contact.new :as sut]
             [contacts.contacts :as contacts]
-            [contacts.contacts.new :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]

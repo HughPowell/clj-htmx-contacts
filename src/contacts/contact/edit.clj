@@ -1,4 +1,4 @@
-(ns contacts.contacts.new
+(ns contacts.contact.edit
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
             [contacts.page :as page]
@@ -6,9 +6,7 @@
             [hiccup.form :as form]
             [liberator.core :as liberator]
             [liberator.representation :as representation]
-            [malli.core :as malli]
-            [malli.error :as malli.error])
-  (:import (java.util UUID)))
+            [malli.core :as malli]))
 
 ;; Schemas
 
@@ -35,13 +33,13 @@
     (string/join ", " (conj (vec (drop-last 2 option-list)) suffix))))
 
 (defn- render
-  ([request] (render request nil nil))
+  ([request contact] (render request contact nil))
   ([request contact errors]
    (page/render
      (:flash request)
      (list
        (form/form-to
-         [:post "/contacts/new"]
+         [:post (format "/contacts/%s/edit" (:id contact))]
          [:fieldset
           [:legend "Contact Values"]
           (input "email" "Email" "email" "Email" (:email contact)
@@ -53,14 +51,31 @@
                  (when-let [errors (:phone errors)]
                    (format "The number %s." (->human-readable-option-list errors))))
           [:button "Save"]])
+       (form/form-to
+         [:post (format "/contacts/%s/delete" (:id contact))]
+         [:button "Delete"])
        [:p [:a {:href "/contacts"} "Back"]]))))
 
 ;; Persistence
 
+(defn retrieve* [contacts-storage id]
+  (first (get (group-by :id @contacts-storage) id)))
+
+(defn- retrieve [contacts-storage id]
+  (let [contact (retrieve* contacts-storage id)]
+    (when (malli/validate contact/schema contact)
+      contact)))
+
 (defn persist* [contacts-storage contact]
-  (let [contact' (assoc contact :id (str (UUID/randomUUID)))]
-    (swap! contacts-storage conj contact')
-    contacts-storage))
+  (let [replace (fn [contacts contact]
+                  (set (map
+                         (fn [{:keys [id] :as contact'}]
+                           (if (= id (:id contact))
+                             contact
+                             contact'))
+                         contacts)))]
+    (swap! contacts-storage replace contact))
+  contacts-storage)
 
 (defn- persist [contacts-storage contact]
   (when-not (malli/validate schema contact)
@@ -78,22 +93,28 @@
                         contact (:params request')]
                     (case request-method
                       :get [false {:request request'}]
-                      :post (let [updates {:request request'
-                                           :contact contact}]
+                      :post (let [updates {:request     request'
+                                           :new-contact contact}]
                               (if (malli/validate schema contact)
                                 [false updates]
                                 [true (merge
                                         updates
                                         {:validation-errors (malli/explain schema contact)})])))))
+    :exists? (fn [{:keys [request]}]
+               (if-let [contact (retrieve contacts-storage (get-in request [:params :id]))]
+                 [true {:original-contact contact}]
+                 false))
     :post-redirect? true
     :location "/contacts"
-    :post! (fn [{:keys [contact]}]
-             (persist contacts-storage contact))
+    :post! (fn [{:keys [new-contact]}]
+             (persist contacts-storage new-contact))
+    :handle-exception (fn [ctx]
+                        (clojure.pprint/pprint ctx))
     :handle-see-other (representation/ring-response
-                        {:flash "New Contact Created!"})
-    :handle-malformed (fn [{:keys [request contact validation-errors]}]
+                        {:flash "Updated Contact!"})
+    :handle-malformed (fn [{:keys [request new-contact validation-errors]}]
                         (representation/ring-response
-                          (render request contact (malli.error/humanize validation-errors))
+                          (render request new-contact (malli.error/humanize validation-errors))
                           {:headers {"Content-Type" "text/html"}}))
-    :handle-ok (fn [{:keys [request]}]
-                 (render request))))
+    :handle-ok (fn [{:keys [request original-contact]}]
+                 (render request original-contact))))

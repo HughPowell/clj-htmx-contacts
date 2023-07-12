@@ -1,9 +1,9 @@
 (ns contacts.app
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
+            [contacts.contact.new :as contact.new]
+            #_[contacts.contact.edit :as edit]
             [contacts.contacts :as contacts]
-            [contacts.contacts.new :as contacts.new]
-            #_[contacts.contacts.edit :as edit]
             [clojure.java.io :as io]
             [contacts.page :as page]
             [liberator.core :refer [resource]]
@@ -52,7 +52,7 @@
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (contacts/resource defaults contacts-storage)]
                 ["/contacts/new" {:conflicting true
-                                  :handler     (contacts.new/resource defaults contacts-storage)}]
+                                  :handler     (contact.new/resource defaults contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
                                   :handler     (contact/resource defaults contacts-storage)}]
                 #_["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
