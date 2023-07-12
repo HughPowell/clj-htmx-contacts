@@ -74,12 +74,10 @@
   (liberator/resource default
     :allowed-methods [:get :post]
     :malformed? (fn [{:keys [request] {:keys [request-method]} :request}]
-                  (let [request' (request/assoc-params request)
-                        contact (:params request')]
+                  (let [contact (:params request)]
                     (case request-method
-                      :get [false {:request request'}]
-                      :post (let [updates {:request request'
-                                           :contact contact}]
+                      :get false
+                      :post (let [updates {:contact contact}]
                               (if (malli/validate schema contact)
                                 [false updates]
                                 [true (merge

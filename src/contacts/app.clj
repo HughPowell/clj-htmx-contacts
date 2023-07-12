@@ -6,6 +6,7 @@
             [contacts.contacts :as contacts]
             [clojure.java.io :as io]
             [contacts.page :as page]
+            [contacts.request :as request]
             [liberator.core :refer [resource]]
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]
@@ -58,17 +59,19 @@
                 ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]]))
 
 (defn handler [contacts-storage]
-  (ring/ring-handler
-    (router contacts-storage)
-    (ring/create-default-handler
-      {:not-found      (fn [request] {:status 404
-                                      :body   (could-not-find-it request)})
-       :not-acceptable (fn [request] {:status 500
-                                      :body   (we-messed-up request)})})
-    {:middleware     [session/wrap-session
-                      flash/wrap-flash]
-     :inject-match?  false
-     :inject-router? false}))
+  (let [router (router contacts-storage)]
+    (ring/ring-handler
+      router
+      (ring/create-default-handler
+        {:not-found      (fn [request] {:status 404
+                                        :body   (could-not-find-it request)})
+         :not-acceptable (fn [request] {:status 500
+                                        :body   (we-messed-up request)})})
+      {:middleware     [session/wrap-session
+                        flash/wrap-flash
+                        #(request/wrap-params % {:router router})]
+       :inject-match?  false
+       :inject-router? false})))
 
 (defn start-server [contacts-storage]
   (jetty/run-jetty (#'handler contacts-storage) {:join? false :port 3000}))

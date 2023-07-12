@@ -102,9 +102,7 @@
   (liberator/resource defaults
                       :handle-ok (fn [{:keys [request]}]
                                    (let [contacts (retrieve contacts-storage)
-                                         query (-> request
-                                                   (request/assoc-params)
-                                                   (get-in [:params :query]))]
+                                         query (get-in request [:params :query])]
                                      (render
                                        request
                                        (find contacts query)

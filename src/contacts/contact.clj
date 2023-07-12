@@ -54,10 +54,8 @@
   (liberator/resource default
                       :allowed-methods [:get]
                       :exists? (fn [{:keys [request]}]
-                                 (let [request' (request/assoc-params request)
-                                       updates {:request request'}]
-                                   (if-let [contact (retrieve contacts-storage (get-in request' [:params :id]))]
-                                     [true (merge updates {:contact contact})]
-                                     [false updates])))
+                                 (if-let [contact (retrieve contacts-storage (get-in request [:params :id]))]
+                                   [true {:contact contact}]
+                                   false))
                       :handle-ok (fn [{:keys [request contact]}]
                                    (render request contact))))
