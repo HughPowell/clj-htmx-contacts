@@ -86,8 +86,37 @@
           oracle-results (oracle/fixture (retrieve-contact #{} contacts id))]
       (is (contact-data-is-identical sut-results oracle-results)))))
 
+(defn oracle-edit-persist-contact* [contacts-storage updated-contact]
+  (conj
+    (remove (fn [{:keys [id]}] (= (:id updated-contact) id)) contacts-storage)
+    updated-contact))
+
+(oracle/register {'edit/persist* oracle-edit-persist-contact*
+                  'edit/retrieve* oracle-retrieve-contact*})
+
+(defn- update-contact [storage contacts updated-contact]
+  (-> storage
+      (contacts/persist* contacts)
+      (edit/persist* updated-contact)
+      (contacts/retrieve*)))
+
+(defn- contacts-are-identical? [sut oracle]
+  (is (= (set (map #(dissoc % :id) sut))
+         (set (map #(dissoc % :id) oracle)))))
+
+(defspec persist-update-to-contact-integration-matches-oracle
+  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+            id (generators/fmap :id (generators/elements contacts))
+            updated-contact (generators/fmap
+                              #(assoc % :id id)
+                              (malli.generator/generator contact/schema))]
+    (let [sut-results (update-contact (atom #{}) contacts updated-contact)
+          oracle-results (oracle/fixture (update-contact #{} contacts updated-contact))]
+      (contacts-are-identical? sut-results oracle-results))))
+
 (comment
   (contacts-integration-matches-oracle)
   (new-contact-integration-matches-oracle)
   (retrieve-contact-integration-matches-oracle)
+  (persist-update-to-contact-integration-matches-oracle)
   )
