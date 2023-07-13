@@ -69,5 +69,5 @@ jobs:
           context: .
           file: ./infra/docker/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}:${{ env.APP_VERSION }}
+          tags: ${{ env.APP_VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
