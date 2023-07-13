@@ -34,3 +34,5 @@ jobs:
       - name: Run Unit tests
         run: clojure -X:test
 
+      - name: Build Uberjar
+        run: clj -T:build uber
