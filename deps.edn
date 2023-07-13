@@ -7,13 +7,16 @@
            metosin/reitit-ring                 {:mvn/version "0.7.0-alpha5"}
            org.slf4j/slf4j-nop                 {:mvn/version "2.0.7"}
            ring/ring-jetty-adapter             {:mvn/version "1.10.0"}}
- :aliases {:dev  {:extra-paths ["dev"]
-                  :extra-deps  {clj-http/clj-http {:mvn/version "3.12.3"}}}
-           :test {:extra-paths ["tests"]
-                  :extra-deps  {com.gfredericks/test.chuck {:mvn/version "0.2.13"}
-                                enlive/enlive              {:mvn/version "1.1.6"}
-                                lambdaisland/kaocha        {:mvn/version "1.85.1342"}
-                                idle/multiset              {:git/url "https://github.com/win-some/multiset.git"
-                                                            :sha     "80deac7a58ebc27a3f1d0c171e7442c3270b16a6"}}
-                  :exec-fn     kaocha.runner/exec-fn
-                  :exec-args   {}}}}
+ :aliases {:dev   {:extra-paths ["dev"]
+                   :extra-deps  {clj-http/clj-http {:mvn/version "3.12.3"}}}
+           :test  {:extra-paths ["tests"]
+                   :extra-deps  {com.gfredericks/test.chuck {:mvn/version "0.2.13"}
+                                 enlive/enlive              {:mvn/version "1.1.6"}
+                                 lambdaisland/kaocha        {:mvn/version "1.85.1342"}
+                                 idle/multiset              {:git/url "https://github.com/win-some/multiset.git"
+                                                             :sha     "80deac7a58ebc27a3f1d0c171e7442c3270b16a6"}}
+                   :exec-fn     kaocha.runner/exec-fn
+                   :exec-args   {}}
+           :build {:paths      ["infra"]
+                   :deps       {io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}}
+                   :ns-default build}}}

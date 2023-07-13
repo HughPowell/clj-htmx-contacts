@@ -12,7 +12,8 @@
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.flash :as flash]
-            [ring.middleware.session :as session]))
+            [ring.middleware.session :as session])
+  (:gen-class))
 
 (def ^:private return-home
   [:p "Here's the incantation for getting back " [:a {:href "/"} "Home"] "."])
@@ -83,6 +84,9 @@
     (set-validator! storage (fn [contacts] (= (count contacts)
                                               (count (set (map :id contacts))))))
     (contacts/persist storage contacts)))
+
+(defn -main [& _]
+  (start-server (init-contacts-storage #{})))
 
 (comment
   (require '[malli.generator :as malli.generator])
