@@ -70,5 +70,5 @@ jobs:
           file: ./infra/docker/Dockerfile
           build-args: version=${{ env.app-version }}
           push: true
-          tags: ${{ env.app-version }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
