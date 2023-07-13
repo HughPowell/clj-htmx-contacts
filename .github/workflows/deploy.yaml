@@ -60,11 +60,15 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Store the version number
+        run: echo "app-version=$(git rev-list HEAD --count)" >> "$GITHUB_ENV"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: .
           file: ./infra/docker/Dockerfile
+          build-args: version={{ env.app-version }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

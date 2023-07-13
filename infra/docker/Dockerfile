@@ -1,3 +1,4 @@
+ARG version
 FROM clojure:temurin-17-alpine AS builder
 
 RUN mkdir -p /build
@@ -14,6 +15,7 @@ FROM eclipse-temurin:17-alpine AS final
 LABEL org.opencontainers.image.source=https://github.com/HughPowell/clj-htmx-contacts
 LABEL org.opencontainers.image.description="The HTMX Contacts App written in Clojure"
 LABEL org.opencontainers.image.licenses=MPL-2.0
+LABEL org.opencontainers.image.version=1.0.$version
 
 RUN apk add --no-cache \
     dumb-init~=1.2.5
