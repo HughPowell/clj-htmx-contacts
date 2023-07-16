@@ -55,22 +55,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Store the version number
-        run: echo "APP_VERSION=$(clojure -X:build version)" >> "$GITHUB_ENV"
-
-      - name: Create tag
-        uses: cardinalby/git-tag-action@master
-        env:
-          TAG: ${{ env.APP_VERSION }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=match,pattern=\d+.\d+.[0-9A-Za-z]+
+            type=sha,prefix=
 
       - name: Build and push Docker image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
