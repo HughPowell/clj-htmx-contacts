@@ -1,0 +1,1 @@
+(ns contacts.storage)

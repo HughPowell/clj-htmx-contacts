@@ -1,17 +1,14 @@
 (ns contacts.contact.delete-spec
-  (:require [clojure.string :as string]
-            [clojure.test :refer [is]]
+  (:require [clojure.test :refer [is]]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
             [contacts.contacts :as contacts]
-            [contacts.contact.edit :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
-            [malli.core :as malli]
-            [net.cgrand.enlive-html :as enlive]))
+            [malli.generator :as malli.generator]))
 
 (def ^:private contacts-list-path "/contacts")
 

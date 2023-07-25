@@ -2,7 +2,6 @@
   (:require [clojure.string :as string]
             [contacts.contact :as contact]
             [contacts.page :as page]
-            [contacts.request :as request]
             [hiccup.form :as form]
             [liberator.core :as liberator]
             [liberator.representation :as representation]

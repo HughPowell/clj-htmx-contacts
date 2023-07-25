@@ -50,8 +50,11 @@
                        :existed? true
                        :moved-temporarily? true
                        :location "/contacts")]
-                ["/favicon.ico" (resource :available-media-types ["image/x-icon"]
-                                                                 :handle-ok (fn [_] (io/input-stream (io/resource "public/favicon.ico"))))]
+                ["/favicon.ico" (resource defaults
+                                  :available-media-types ["image/x-icon"]
+                                  :handle-ok (fn [_] (-> "public/favicon.ico"
+                                                         (io/resource)
+                                                         (io/input-stream))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (contacts/resource defaults contacts-storage)]
                 ["/contacts/new" {:conflicting true

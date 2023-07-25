@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [find])
   (:require [contacts.contact :as contact]
             [contacts.page :as page]
-            [contacts.request :as request]
             [clojure.string :as string]
             [hiccup.element :as element]
             [hiccup.form :as form]

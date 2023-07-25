@@ -1,7 +1,6 @@
 (ns contacts.contact
   (:require [clojure.string :as string]
             [contacts.page :as page]
-            [contacts.request :as request]
             [liberator.core :as liberator]
             [malli.core :as malli]))
 

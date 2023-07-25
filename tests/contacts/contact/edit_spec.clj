@@ -12,6 +12,7 @@
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
             [malli.core :as malli]
+            [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
 
 (def ^:private sut-path-format "/contacts/%s/edit")
