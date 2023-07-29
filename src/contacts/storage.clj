@@ -6,6 +6,8 @@
   (:refer-clojure :exclude [update])
   (:import (java.util UUID)))
 
+;; Schemas
+
 (def new-contact-schema
   [:map
    schemas/first-name
@@ -30,15 +32,16 @@
 (defn- validate [schema data]
   (when-not (malli/validate schema data)
     (let [explanation (malli/explain schema data)]
-      (throw (ex-info (malli.error/humanize explanation) explanation))))
+      (throw (ex-info (str (malli.error/humanize explanation)) explanation))))
   data)
 
 (defn persist* [contacts-storage contacts]
-  (reset! contacts-storage (set contacts))
+  (reset! contacts-storage contacts)
   contacts-storage)
 
 (defn persist [contacts-storage contacts]
   (->> contacts
+       set
        (validate contacts-schema)
        (persist* contacts-storage)))
 
@@ -87,8 +90,7 @@
   contacts-storage)
 
 (defn delete [contacts-storage id]
-  (delete* contacts-storage id)
-  contacts-storage)
+  (delete* contacts-storage id))
 
 (comment
   )

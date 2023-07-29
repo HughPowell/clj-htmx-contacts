@@ -20,8 +20,8 @@
 
 (defn- retrieve-contacts [storage contacts]
   (-> storage
-      (storage/persist* contacts)
-      (storage/retrieve*)))
+      (storage/persist contacts)
+      (storage/retrieve)))
 
 (defspec contacts-integration-matches-oracle
   (for-all [contacts (malli.generator/generator storage/contacts-schema)]
@@ -49,9 +49,9 @@
 
 (defn- persist-contact [storage contacts contact]
   (-> storage
-      (storage/persist* contacts)
-      (storage/create* contact)
-      (storage/retrieve*)))
+      (storage/persist contacts)
+      (storage/create contact)
+      (storage/retrieve)))
 
 (defspec new-contact-integration-matches-oracle
   (for-all [contacts (malli.generator/generator storage/contacts-schema)
@@ -71,8 +71,8 @@
 
 (defn- retrieve-contact [storage contacts id]
   (-> storage
-      (storage/persist* contacts)
-      (storage/retrieve* id)))
+      (storage/persist contacts)
+      (storage/retrieve id)))
 
 (defspec retrieve-contact-integration-matches-oracle
   (for-all [contacts (generators/such-that
@@ -84,17 +84,18 @@
       (is (contact-data-is-identical sut-results oracle-results)))))
 
 (defn oracle-update-persist-contact* [contacts-storage updated-contact]
-  (conj
-    (remove (fn [{:keys [id]}] (= (:id updated-contact) id)) contacts-storage)
-    updated-contact))
+  (set
+    (conj
+      (remove (fn [{:keys [id]}] (= (:id updated-contact) id)) contacts-storage)
+      updated-contact)))
 
 (oracle/register {'storage/update* oracle-update-persist-contact*})
 
 (defn- update-contact [storage contacts updated-contact]
   (-> storage
-      (storage/persist* contacts)
-      (storage/update* updated-contact)
-      (storage/retrieve*)))
+      (storage/persist contacts)
+      (storage/update updated-contact)
+      (storage/retrieve)))
 
 (defn- contacts-are-identical? [sut oracle]
   (is (= (set (map #(dissoc % :id) sut))
@@ -111,15 +112,17 @@
       (contacts-are-identical? sut-results oracle-results))))
 
 (defn oracle-delete-contact* [contacts-storage contact-id]
-  (remove (fn [{:keys [id]}] (= contact-id id)) contacts-storage))
+  (->> contacts-storage
+       (remove (fn [{:keys [id]}] (= contact-id id)))
+       (set)))
 
 (oracle/register {'storage/delete* oracle-delete-contact*})
 
 (defn- delete-contact [storage contacts contact-id]
   (-> storage
-      (storage/persist* contacts)
-      (storage/delete* contact-id)
-      (storage/retrieve*)))
+      (storage/persist contacts)
+      (storage/delete contact-id)
+      (storage/retrieve)))
 
 (defspec delete-contact-integration-matches-oracle
   (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
