@@ -1,6 +1,6 @@
 (ns contacts.contact.new
   (:require [clojure.string :as string]
-            [contacts.contact :as contact]
+            [contacts.contact.schemas :as schemas]
             [contacts.page :as page]
             [hiccup.form :as form]
             [liberator.core :as liberator]
@@ -13,10 +13,10 @@
 
 (def schema
   [:map
-   contact/first-name
-   contact/last-name
-   contact/phone
-   contact/email])
+   schemas/first-name
+   schemas/last-name
+   schemas/phone
+   schemas/email])
 
 ;; Rendering
 

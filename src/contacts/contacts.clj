@@ -1,6 +1,6 @@
 (ns contacts.contacts
   (:refer-clojure :exclude [find])
-  (:require [contacts.contact :as contact]
+  (:require [contacts.contact.schemas :as schemas]
             [contacts.page :as page]
             [clojure.string :as string]
             [hiccup.element :as element]
@@ -18,11 +18,11 @@
 (def schema
   [:and
    [:set [:map
-          contact/id
-          contact/first-name
-          contact/last-name
-          contact/phone
-          contact/email]]
+          schemas/id
+          schemas/first-name
+          schemas/last-name
+          schemas/phone
+          schemas/email]]
    [:fn ids-are-unique?]])
 
 ;; Business logic

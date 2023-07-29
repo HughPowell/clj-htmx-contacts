@@ -1,5 +1,5 @@
 (ns contacts.storage
-  (:require [contacts.contact :as contact]
+  (:require [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]))
 
@@ -10,11 +10,11 @@
 (def schema
   [:and
    [:set [:map
-          contact/id
-          contact/first-name
-          contact/last-name
-          contact/phone
-          contact/email]]
+          schemas/id
+          schemas/first-name
+          schemas/last-name
+          schemas/phone
+          schemas/email]]
    [:fn ids-are-unique?]])
 
 (defn- validate [schema contacts]
