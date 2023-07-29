@@ -1,28 +1,11 @@
 (ns contacts.contacts
   (:refer-clojure :exclude [find])
-  (:require [contacts.contact.schemas :as schemas]
-            [contacts.page :as page]
+  (:require [contacts.page :as page]
             [clojure.string :as string]
             [contacts.storage :as storage]
             [hiccup.element :as element]
             [hiccup.form :as form]
             [liberator.core :as liberator]))
-
-;; Schemas
-
-(defn- ids-are-unique? [contacts]
-  (= (count contacts)
-     (count (set (map :id contacts)))))
-
-(def schema
-  [:and
-   [:set [:map
-          schemas/id
-          schemas/first-name
-          schemas/last-name
-          schemas/phone
-          schemas/email]]
-   [:fn ids-are-unique?]])
 
 ;; Business logic
 

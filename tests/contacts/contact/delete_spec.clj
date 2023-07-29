@@ -4,10 +4,10 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
-            [contacts.contacts :as contacts]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
+            [contacts.storage :as storage]
             [malli.generator :as malli.generator]))
 
 (def ^:private contacts-list-path "/contacts")
@@ -24,7 +24,7 @@
       (set (remove (fn [{:keys [id]}] (= contact-id id)) contacts))))
 
 (defspec deleting-contact-deletes-contact-in-contacts-list
-  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             id (generators/fmap :id (generators/elements contacts))
             delete-contact-request (request/generator (format sut-path-format id)
                                                       {:request-method :post})
@@ -39,7 +39,7 @@
   (is (= 404 status)))
 
 (defspec deleting-non-existent-contact-fails
-  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             id (generators/such-that
                  (fn [id]
                    (and (seq id)

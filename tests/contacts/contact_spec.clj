@@ -4,9 +4,9 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.contacts :as contacts]
             [contacts.lib.request :as request]
             [contacts.lib.test-system :as test-system]
+            [contacts.storage :as storage]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
 
@@ -28,7 +28,7 @@
     (is (string/includes? edit-link (:id contact)))))
 
 (defspec retrieving-a-contact-displays-it
-  (for-all [contacts (generators/such-that seq (malli.generator/generator contacts/schema))
+  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             contact (generators/elements contacts)
             request (request/generator (format sut-path-format (:id contact)))]
     (let [response (test-system/make-oracle-request contacts request)]
@@ -40,7 +40,7 @@
   (is (= 404 status)))
 
 (defspec non-existent-contact-not-found
-  (for-all [contacts (malli.generator/generator contacts/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             id (generators/such-that
                  (fn [id]
                    (and

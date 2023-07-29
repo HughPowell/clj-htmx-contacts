@@ -5,10 +5,10 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.contacts :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
+            [contacts.storage :as storage]
             [idle.multiset.api :as mset]
             [malli.generator :as malli.generator]))
 
@@ -38,7 +38,7 @@
          (mset/multiset contacts))))
 
 (defspec all-contacts-returned-when-no-query
-  (for-all [contacts (malli.generator/generator sut/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             request (request-generator sut-path)]
     (let [response (test-system/make-oracle-request contacts request)]
       (is (successful-response? response))
@@ -64,7 +64,7 @@
                      (set contacts)))))
 
 (defspec contacts-that-match-search-are-rendered
-  (for-all [contacts (malli.generator/generator sut/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             string' (if (seq contacts)
                       (generators/one-of
                         [(->> contacts

@@ -95,7 +95,7 @@
 (comment
   (require '[malli.generator :as malli.generator])
   (defn populate-contacts-storage []
-    (init-contacts-storage (malli.generator/generate contacts/schema)))
+    (init-contacts-storage (malli.generator/generate storage/contacts-schema)))
   (def server (start-server (populate-contacts-storage)))
 
   (do

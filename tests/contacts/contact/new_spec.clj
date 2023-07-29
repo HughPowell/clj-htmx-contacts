@@ -5,10 +5,10 @@
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
             [contacts.contact.new :as sut]
-            [contacts.contacts :as contacts]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
+            [contacts.storage :as storage]
             [malli.core :as malli]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
@@ -26,7 +26,7 @@
     (is (empty? inputs-with-values))))
 
 (defspec getting-a-new-contact-form-provides-an-empty-form
-  (for-all [contacts (malli.generator/generator contacts/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             request (request/generator sut-path)]
     (let [response (test-system/make-oracle-request contacts request)]
       (and (is (new-contact-form-is-returned-ok? response))
@@ -42,7 +42,7 @@
            (set (conj contacts contact)))))
 
 (defspec adding-new-contact-adds-contact-to-contacts-list
-  (for-all [contacts (malli.generator/generator contacts/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             contact (malli.generator/generator sut/schema)
             save-contact-request (request/generator sut-path
                                                     {:request-method :post
@@ -82,7 +82,7 @@
     (is (every? nil? (vals (apply dissoc id->error error-ids))))))
 
 (defspec adding-invalid-contact-returns-to-editing-screen
-  (for-all [contacts (malli.generator/generator contacts/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             invalid-contact (->> [:map
                                   [:first-name :string]
                                   [:last-name :string]
