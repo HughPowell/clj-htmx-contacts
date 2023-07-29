@@ -3,7 +3,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.contact.edit :as edit]
             [contacts.contact.new :as new]
             [contacts.lib.oracle :as oracle]
             [contacts.storage :as storage]
@@ -84,18 +83,17 @@
           oracle-results (oracle/fixture (retrieve-contact #{} contacts id))]
       (is (contact-data-is-identical sut-results oracle-results)))))
 
-(defn oracle-edit-persist-contact* [contacts-storage updated-contact]
+(defn oracle-update-persist-contact* [contacts-storage updated-contact]
   (conj
     (remove (fn [{:keys [id]}] (= (:id updated-contact) id)) contacts-storage)
     updated-contact))
 
-(oracle/register {'edit/persist*  oracle-edit-persist-contact*
-                  'edit/retrieve* oracle-retrieve-contact*})
+(oracle/register {'storage/update* oracle-update-persist-contact*})
 
 (defn- update-contact [storage contacts updated-contact]
   (-> storage
       (storage/persist* contacts)
-      (edit/persist* updated-contact)
+      (storage/update* updated-contact)
       (storage/retrieve*)))
 
 (defn- contacts-are-identical? [sut oracle]

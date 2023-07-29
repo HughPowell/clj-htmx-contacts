@@ -56,33 +56,6 @@
          [:button "Delete"])
        [:p [:a {:href "/contacts"} "Back"]]))))
 
-;; Persistence
-
-(defn retrieve* [contacts-storage id]
-  (first (get (group-by :id @contacts-storage) id)))
-
-(defn- retrieve [contacts-storage id]
-  (let [contact (retrieve* contacts-storage id)]
-    (when (malli/validate storage/contact-schema contact)
-      contact)))
-
-(defn persist* [contacts-storage contact]
-  (let [replace (fn [contacts contact]
-                  (set (map
-                         (fn [{:keys [id] :as contact'}]
-                           (if (= id (:id contact))
-                             contact
-                             contact'))
-                         contacts)))]
-    (swap! contacts-storage replace contact))
-  contacts-storage)
-
-(defn- persist [contacts-storage contact]
-  (when-not (malli/validate schema contact)
-    (let [explanation (malli/explain schema contact)]
-      (throw (ex-info (malli.error/humanize explanation) explanation))))
-  (persist* contacts-storage contact))
-
 ;; HTTP Resource
 
 (defn resource [default contacts-storage]
@@ -99,16 +72,14 @@
                                         updates
                                         {:validation-errors (malli/explain schema contact)})])))))
     :exists? (fn [{:keys [request]}]
-               (if-let [contact (retrieve contacts-storage (get-in request [:params :id]))]
+               (if-let [contact (storage/retrieve contacts-storage (get-in request [:params :id]))]
                  [true {:original-contact contact}]
                  false))
     :can-post-to-missing? false
     :post! (fn [{:keys [new-contact]}]
-             (persist contacts-storage new-contact))
+             (storage/update contacts-storage new-contact))
     :post-redirect? true
     :location "/contacts"
-    :handle-exception (fn [ctx]
-                        (clojure.pprint/pprint ctx))
     :handle-see-other (representation/ring-response
                         {:flash "Updated Contact!"})
     :handle-malformed (fn [{:keys [request new-contact validation-errors]}]

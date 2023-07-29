@@ -1,7 +1,8 @@
 (ns contacts.storage
   (:require [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
-            [malli.error :as malli.error]))
+            [malli.error :as malli.error])
+  (:refer-clojure :exclude [update]))
 
 (def contact-schema
   [:map
@@ -46,6 +47,22 @@
    (let [contact (retrieve* contacts-storage id)]
      (when (malli/validate contact-schema contact)
        contact))))
+
+(defn update* [contacts-storage contact]
+  (let [replace (fn [contacts contact]
+                  (set (map
+                         (fn [{:keys [id] :as contact'}]
+                           (if (= id (:id contact))
+                             contact
+                             contact'))
+                         contacts)))]
+    (swap! contacts-storage replace contact))
+  contacts-storage)
+
+(defn update [contacts-storage contact]
+  (validate contact-schema contact)
+  (update* contacts-storage contact))
+
 
 (defn delete* [contacts-storage contact-id]
   (swap! contacts-storage #(set (remove (fn [{:keys [id]}] (= contact-id id)) %)))
