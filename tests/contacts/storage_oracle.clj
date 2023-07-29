@@ -3,11 +3,9 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.contact :as contact]
             [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
             [contacts.contact.new :as new]
-            [contacts.contacts :as contacts]
             [contacts.lib.oracle :as oracle]
             [contacts.storage :as storage]
             [malli.generator :as malli.generator]))
@@ -15,8 +13,9 @@
 (defn oracle-persist-contacts* [_contacts-storage contacts]
   (set contacts))
 
-(defn oracle-retrieve* [contacts-storage]
-  contacts-storage)
+(defn oracle-retrieve*
+  ([contacts-storage] contacts-storage)
+  ([contacts-storage requested-id] (first (filter (fn [{:keys [id]}] (= requested-id id)) contacts-storage))))
 
 (oracle/register {'storage/persist*  oracle-persist-contacts*
                   'storage/retrieve* oracle-retrieve*})
@@ -27,7 +26,7 @@
       (storage/retrieve*)))
 
 (defspec contacts-integration-matches-oracle
-  (for-all [contacts (malli.generator/generator storage/schema)]
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)]
     (is (= (retrieve-contacts (atom #{}) contacts)
            (oracle/fixture (retrieve-contacts #{} contacts))))))
 
@@ -57,7 +56,7 @@
       (storage/retrieve*)))
 
 (defspec new-contact-integration-matches-oracle
-  (for-all [contacts (malli.generator/generator storage/schema)
+  (for-all [contacts (malli.generator/generator storage/contacts-schema)
             contact (malli.generator/generator new/schema)]
     (let [sut-results (persist-contact (atom #{}) contacts contact)
           oracle-results (oracle/fixture (persist-contact #{} contacts contact))]
@@ -68,8 +67,6 @@
 (defn oracle-retrieve-contact* [contacts-storage requested-id]
   (first (filter (fn [{:keys [id]}] (= requested-id id)) contacts-storage)))
 
-(oracle/register {'contact/retrieve* oracle-retrieve-contact*})
-
 (defn- contact-data-is-identical [sut oracle]
   (is (= (dissoc sut :id)
          (dissoc oracle :id))))
@@ -77,12 +74,12 @@
 (defn- retrieve-contact [storage contacts id]
   (-> storage
       (storage/persist* contacts)
-      (contact/retrieve* id)))
+      (storage/retrieve* id)))
 
 (defspec retrieve-contact-integration-matches-oracle
   (for-all [contacts (generators/such-that
                        seq
-                       (malli.generator/generator storage/schema))
+                       (malli.generator/generator storage/contacts-schema))
             id (generators/elements (map :id contacts))]
     (let [sut-results (retrieve-contact (atom #{}) contacts id)
           oracle-results (oracle/fixture (retrieve-contact #{} contacts id))]
@@ -107,11 +104,11 @@
          (set (map #(dissoc % :id) oracle)))))
 
 (defspec persist-update-to-contact-integration-matches-oracle
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/schema))
+  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             id (generators/fmap :id (generators/elements contacts))
             updated-contact (generators/fmap
                               #(assoc % :id id)
-                              (malli.generator/generator contact/schema))]
+                              (malli.generator/generator storage/contact-schema))]
     (let [sut-results (update-contact (atom #{}) contacts updated-contact)
           oracle-results (oracle/fixture (update-contact #{} contacts updated-contact))]
       (contacts-are-identical? sut-results oracle-results))))
@@ -129,7 +126,7 @@
       (storage/retrieve*)))
 
 (defspec delete-contact-integration-matches-oracle
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/schema))
+  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             id (generators/fmap :id (generators/elements contacts))]
     (let [sut-results (delete-contact (atom #{}) contacts id)
           oracle-results (oracle/fixture (delete-contact #{} contacts id))]

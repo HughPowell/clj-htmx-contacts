@@ -5,12 +5,12 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
             [contacts.app :as app]
-            [contacts.contact :as contact]
             [contacts.contacts :as contacts]
             [contacts.contact.edit :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
+            [contacts.storage :as storage]
             [malli.core :as malli]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
@@ -122,7 +122,7 @@
                    (and (seq id)
                         (not (contains? (set (map :id contacts)) id))))
                  generators/string-alphanumeric)
-            contact-data (malli.generator/generator contact/schema)
+            contact-data (malli.generator/generator storage/contact-schema)
             request (request/generator (format sut-path-format id)
                                        {:request-method :post
                                         :form-params    contact-data})]

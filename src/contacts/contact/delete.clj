@@ -1,5 +1,5 @@
 (ns contacts.contact.delete
-  (:require [contacts.contact :as contact]
+  (:require [contacts.storage :as storage]
             [liberator.core :as liberator]
             [liberator.representation :as representation]
             [malli.core :as malli]))
@@ -11,7 +11,7 @@
 
 (defn- retrieve [contacts-storage id]
   (let [contact (retrieve* contacts-storage id)]
-    (when (malli/validate contact/schema contact)
+    (when (malli/validate storage/contact-schema contact)
       contact)))
 
 (defn delete* [contacts-storage contact-id]

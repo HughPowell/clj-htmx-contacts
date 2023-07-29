@@ -1,8 +1,8 @@
 (ns contacts.contact.edit
   (:require [clojure.string :as string]
-            [contacts.contact :as contact]
             [contacts.contact.schemas :as schemas]
             [contacts.page :as page]
+            [contacts.storage :as storage]
             [hiccup.form :as form]
             [liberator.core :as liberator]
             [liberator.representation :as representation]
@@ -63,7 +63,7 @@
 
 (defn- retrieve [contacts-storage id]
   (let [contact (retrieve* contacts-storage id)]
-    (when (malli/validate contact/schema contact)
+    (when (malli/validate storage/contact-schema contact)
       contact)))
 
 (defn persist* [contacts-storage contact]
