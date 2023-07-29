@@ -2,12 +2,12 @@
   (:require [clojure.string :as string]
             [contacts.contact.schemas :as schemas]
             [contacts.page :as page]
+            [contacts.storage :as storage]
             [hiccup.form :as form]
             [liberator.core :as liberator]
             [liberator.representation :as representation]
             [malli.core :as malli]
-            [malli.error :as malli.error])
-  (:import (java.util UUID)))
+            [malli.error :as malli.error]))
 
 ;; Schemas
 
@@ -54,19 +54,6 @@
           [:button "Save"]])
        [:p [:a {:href "/contacts"} "Back"]]))))
 
-;; Persistence
-
-(defn persist* [contacts-storage contact]
-  (let [contact' (assoc contact :id (str (UUID/randomUUID)))]
-    (swap! contacts-storage conj contact')
-    contacts-storage))
-
-(defn- persist [contacts-storage contact]
-  (when-not (malli/validate schema contact)
-    (let [explanation (malli/explain schema contact)]
-      (throw (ex-info (malli.error/humanize explanation) explanation))))
-  (persist* contacts-storage contact))
-
 ;; HTTP Resource
 
 (defn resource [default contacts-storage]
@@ -85,7 +72,7 @@
     :post-redirect? true
     :location "/contacts"
     :post! (fn [{:keys [contact]}]
-             (persist contacts-storage contact))
+             (storage/create contacts-storage contact))
     :handle-see-other (representation/ring-response
                         {:flash "New Contact Created!"})
     :handle-malformed (fn [{:keys [request contact validation-errors]}]

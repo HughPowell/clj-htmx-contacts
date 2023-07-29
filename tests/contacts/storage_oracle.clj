@@ -30,14 +30,14 @@
 
 (def id (atom 0))
 
-(defn oracle-persist-contact* [contacts-storage contact]
+(defn oracle-create-contact* [contacts-storage contact]
   (let [ids (set (map :id contacts-storage))]
     (loop [proposed-id (str (swap! id inc))]
       (if (contains? ids proposed-id)
         (recur (str (swap! id inc)))
         (conj contacts-storage (assoc contact :id proposed-id))))))
 
-(oracle/register {'new/persist* oracle-persist-contact*})
+(oracle/register {'storage/create* oracle-create-contact*})
 
 (defn- contacts-data-is-identical? [sut oracle]
   (is (= (set (map #(dissoc % :id) sut))
@@ -50,7 +50,7 @@
 (defn- persist-contact [storage contacts contact]
   (-> storage
       (storage/persist* contacts)
-      (new/persist* contact)
+      (storage/create* contact)
       (storage/retrieve*)))
 
 (defspec new-contact-integration-matches-oracle
@@ -105,7 +105,7 @@
             id (generators/fmap :id (generators/elements contacts))
             updated-contact (generators/fmap
                               #(assoc % :id id)
-                              (malli.generator/generator storage/contact-schema))]
+                              (malli.generator/generator storage/existing-contact-schema))]
     (let [sut-results (update-contact (atom #{}) contacts updated-contact)
           oracle-results (oracle/fixture (update-contact #{} contacts updated-contact))]
       (contacts-are-identical? sut-results oracle-results))))

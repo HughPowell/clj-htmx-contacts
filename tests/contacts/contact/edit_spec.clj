@@ -121,7 +121,7 @@
                    (and (seq id)
                         (not (contains? (set (map :id contacts)) id))))
                  generators/string-alphanumeric)
-            contact-data (malli.generator/generator storage/contact-schema)
+            contact-data (malli.generator/generator storage/existing-contact-schema)
             request (request/generator (format sut-path-format id)
                                        {:request-method :post
                                         :form-params    contact-data})]
