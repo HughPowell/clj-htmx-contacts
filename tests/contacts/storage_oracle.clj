@@ -3,7 +3,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
             [contacts.contact.new :as new]
             [contacts.lib.oracle :as oracle]
@@ -116,13 +115,12 @@
 (defn oracle-delete-contact* [contacts-storage contact-id]
   (remove (fn [{:keys [id]}] (= contact-id id)) contacts-storage))
 
-(oracle/register {'delete/retrieve* oracle-retrieve-contact*
-                  'delete/delete*   oracle-delete-contact*})
+(oracle/register {'storage/delete* oracle-delete-contact*})
 
 (defn- delete-contact [storage contacts contact-id]
   (-> storage
       (storage/persist* contacts)
-      (delete/delete* contact-id)
+      (storage/delete* contact-id)
       (storage/retrieve*)))
 
 (defspec delete-contact-integration-matches-oracle

@@ -46,3 +46,11 @@
    (let [contact (retrieve* contacts-storage id)]
      (when (malli/validate contact-schema contact)
        contact))))
+
+(defn delete* [contacts-storage contact-id]
+  (swap! contacts-storage #(set (remove (fn [{:keys [id]}] (= contact-id id)) %)))
+  contacts-storage)
+
+(defn delete [contacts-storage id]
+  (delete* contacts-storage id)
+  contacts-storage)
