@@ -8,6 +8,7 @@
             [clojure.java.io :as io]
             [contacts.page :as page]
             [contacts.request :as request]
+            [contacts.storage :as storage]
             [liberator.core :refer [resource]]
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]
@@ -86,7 +87,7 @@
   (let [storage (atom #{})]
     (set-validator! storage (fn [contacts] (= (count contacts)
                                               (count (set (map :id contacts))))))
-    (contacts/persist storage contacts)))
+    (storage/persist storage contacts)))
 
 (defn -main [& _]
   (start-server (init-contacts-storage #{})))

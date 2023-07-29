@@ -9,6 +9,7 @@
             [contacts.contact.new :as new]
             [contacts.contacts :as contacts]
             [contacts.lib.oracle :as oracle]
+            [contacts.storage :as storage]
             [malli.generator :as malli.generator]))
 
 (defn oracle-persist-contacts* [_contacts-storage contacts]
@@ -17,12 +18,12 @@
 (defn oracle-retrieve* [contacts-storage]
   contacts-storage)
 
-(oracle/register {'contacts/persist*  oracle-persist-contacts*
+(oracle/register {'storage/persist*  oracle-persist-contacts*
                   'contacts/retrieve* oracle-retrieve*})
 
 (defn- retrieve-contacts [storage contacts]
   (-> storage
-      (contacts/persist* contacts)
+      (storage/persist* contacts)
       (contacts/retrieve*)))
 
 (defspec contacts-integration-matches-oracle
@@ -51,7 +52,7 @@
 
 (defn- persist-contact [storage contacts contact]
   (-> storage
-      (contacts/persist* contacts)
+      (storage/persist* contacts)
       (new/persist* contact)
       (contacts/retrieve*)))
 
@@ -75,7 +76,7 @@
 
 (defn- retrieve-contact [storage contacts id]
   (-> storage
-      (contacts/persist* contacts)
+      (storage/persist* contacts)
       (contact/retrieve* id)))
 
 (defspec retrieve-contact-integration-matches-oracle
@@ -97,7 +98,7 @@
 
 (defn- update-contact [storage contacts updated-contact]
   (-> storage
-      (contacts/persist* contacts)
+      (storage/persist* contacts)
       (edit/persist* updated-contact)
       (contacts/retrieve*)))
 
@@ -123,7 +124,7 @@
 
 (defn- delete-contact [storage contacts contact-id]
   (-> storage
-      (contacts/persist* contacts)
+      (storage/persist* contacts)
       (delete/delete* contact-id)
       (contacts/retrieve*)))
 

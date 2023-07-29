@@ -79,14 +79,6 @@
     (let [explanation (malli/explain schema contacts)]
       (throw (ex-info (malli.error/humanize explanation) explanation)))))
 
-(defn persist* [contacts-storage contacts]
-  (reset! contacts-storage (set contacts))
-  contacts-storage)
-
-(defn persist [contacts-storage contacts]
-  (validate schema contacts)
-  (persist* contacts-storage contacts))
-
 (defn retrieve* [contacts-storage]
   @contacts-storage)
 
