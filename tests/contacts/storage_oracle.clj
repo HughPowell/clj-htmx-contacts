@@ -19,12 +19,12 @@
   contacts-storage)
 
 (oracle/register {'storage/persist*  oracle-persist-contacts*
-                  'contacts/retrieve* oracle-retrieve*})
+                  'storage/retrieve* oracle-retrieve*})
 
 (defn- retrieve-contacts [storage contacts]
   (-> storage
       (storage/persist* contacts)
-      (contacts/retrieve*)))
+      (storage/retrieve*)))
 
 (defspec contacts-integration-matches-oracle
   (for-all [contacts (malli.generator/generator storage/schema)]
@@ -54,7 +54,7 @@
   (-> storage
       (storage/persist* contacts)
       (new/persist* contact)
-      (contacts/retrieve*)))
+      (storage/retrieve*)))
 
 (defspec new-contact-integration-matches-oracle
   (for-all [contacts (malli.generator/generator storage/schema)
@@ -100,7 +100,7 @@
   (-> storage
       (storage/persist* contacts)
       (edit/persist* updated-contact)
-      (contacts/retrieve*)))
+      (storage/retrieve*)))
 
 (defn- contacts-are-identical? [sut oracle]
   (is (= (set (map #(dissoc % :id) sut))
@@ -126,7 +126,7 @@
   (-> storage
       (storage/persist* contacts)
       (delete/delete* contact-id)
-      (contacts/retrieve*)))
+      (storage/retrieve*)))
 
 (defspec delete-contact-integration-matches-oracle
   (for-all [contacts (generators/such-that seq (malli.generator/generator storage/schema))

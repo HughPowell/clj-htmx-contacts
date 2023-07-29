@@ -29,3 +29,11 @@
 (defn persist [contacts-storage contacts]
   (validate schema contacts)
   (persist* contacts-storage contacts))
+
+(defn retrieve* [contacts-storage]
+  @contacts-storage)
+
+(defn retrieve [contacts-storage]
+  (let [contacts (retrieve* contacts-storage)]
+    (validate schema contacts)
+    contacts))

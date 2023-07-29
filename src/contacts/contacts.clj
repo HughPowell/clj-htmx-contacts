@@ -3,11 +3,10 @@
   (:require [contacts.contact.schemas :as schemas]
             [contacts.page :as page]
             [clojure.string :as string]
+            [contacts.storage :as storage]
             [hiccup.element :as element]
             [hiccup.form :as form]
-            [liberator.core :as liberator]
-            [malli.core :as malli]
-            [malli.error :as malli.error]))
+            [liberator.core :as liberator]))
 
 ;; Schemas
 
@@ -72,27 +71,12 @@
       (table contacts)
       (add-contact))))
 
-;; Persistence
-
-(defn- validate [schema contacts]
-  (when-not (malli/validate schema contacts)
-    (let [explanation (malli/explain schema contacts)]
-      (throw (ex-info (malli.error/humanize explanation) explanation)))))
-
-(defn retrieve* [contacts-storage]
-  @contacts-storage)
-
-(defn retrieve [contacts-storage]
-  (let [contacts (retrieve* contacts-storage)]
-    (validate schema contacts)
-    contacts))
-
 ;; HTTP Resource
 
 (defn resource [defaults contacts-storage]
   (liberator/resource defaults
                       :handle-ok (fn [{:keys [request]}]
-                                   (let [contacts (retrieve contacts-storage)
+                                   (let [contacts (storage/retrieve contacts-storage)
                                          query (get-in request [:params :query])]
                                      (render
                                        request
