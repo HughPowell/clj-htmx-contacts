@@ -27,18 +27,20 @@
    [:set existing-contact-schema]
    [:fn ids-are-unique?]])
 
-(defn- validate [schema contacts]
-  (when-not (malli/validate schema contacts)
-    (let [explanation (malli/explain schema contacts)]
-      (throw (ex-info (malli.error/humanize explanation) explanation)))))
+(defn- validate [schema data]
+  (when-not (malli/validate schema data)
+    (let [explanation (malli/explain schema data)]
+      (throw (ex-info (malli.error/humanize explanation) explanation))))
+  data)
 
 (defn persist* [contacts-storage contacts]
   (reset! contacts-storage (set contacts))
   contacts-storage)
 
 (defn persist [contacts-storage contacts]
-  (validate contacts-schema contacts)
-  (persist* contacts-storage contacts))
+  (->> contacts
+       (validate contacts-schema)
+       (persist* contacts-storage)))
 
 (defn retrieve*
   ([contacts-storage] @contacts-storage)
@@ -46,13 +48,13 @@
 
 (defn retrieve
   ([contacts-storage]
-   (let [contacts (retrieve* contacts-storage)]
-     (validate contacts-schema contacts)
-     contacts))
+   (->> contacts-storage
+        (retrieve*)
+        (validate contacts-schema)))
   ([contacts-storage id]
-   (let [contact (retrieve* contacts-storage id)]
-     (when (malli/validate existing-contact-schema contact)
-       contact))))
+   (->> id
+        (retrieve* contacts-storage)
+        (validate [:maybe existing-contact-schema]))))
 
 (defn create* [contacts-storage contact]
   (let [contact' (assoc contact :id (str (UUID/randomUUID)))]
@@ -60,10 +62,9 @@
     contacts-storage))
 
 (defn create [contacts-storage contact]
-  (when-not (malli/validate new-contact-schema contact)
-    (let [explanation (malli/explain new-contact-schema contact)]
-      (throw (ex-info (malli.error/humanize explanation) explanation))))
-  (create* contacts-storage contact))
+  (->> contact
+       (validate new-contact-schema)
+       (create* contacts-storage)))
 
 (defn update* [contacts-storage contact]
   (let [replace (fn [contacts contact]
@@ -77,8 +78,9 @@
   contacts-storage)
 
 (defn update [contacts-storage contact]
-  (validate existing-contact-schema contact)
-  (update* contacts-storage contact))
+  (->> contact
+       (validate existing-contact-schema)
+       (update* contacts-storage)))
 
 (defn delete* [contacts-storage contact-id]
   (swap! contacts-storage #(set (remove (fn [{:keys [id]}] (= contact-id id)) %)))
