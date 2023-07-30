@@ -31,7 +31,9 @@
   (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
             contact (generators/elements contacts)
             request (request/generator (format sut-path-format (:id contact)))]
-    (let [response (test-system/make-oracle-request contacts request)]
+    (let [response (-> contacts
+                       (test-system/construct-handler)
+                       (test-system/make-request request))]
       (is (successfully-returns-html? response))
       (is (contact-is-rendered? contact response)))))
 
@@ -48,7 +50,9 @@
                      (not (contains? (set (map :id contacts)) id))))
                  generators/string-alphanumeric)
             request (request/generator (format sut-path-format id))]
-    (let [response (test-system/make-oracle-request contacts request)]
+    (let [response (-> contacts
+                       (test-system/construct-handler)
+                       (test-system/make-request request))]
       (is (not-found-html? response)))))
 
 (comment

@@ -3,7 +3,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.app :as app]
             [contacts.contact.new :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
@@ -28,7 +27,9 @@
 (defspec getting-a-new-contact-form-provides-an-empty-form
   (for-all [contacts (malli.generator/generator storage/contacts-schema)
             request (request/generator sut-path)]
-    (let [response (test-system/make-oracle-request contacts request)]
+    (let [response (-> contacts
+                       (test-system/construct-handler)
+                       (test-system/make-request request))]
       (and (is (new-contact-form-is-returned-ok? response))
            (is (new-form-is-empty? response))))))
 
@@ -48,9 +49,9 @@
                                                     {:request-method :post
                                                      :form-params    contact})
             contact-list-request (request/generator contact-list-path)]
-    (let [contacts-storage (app/init-contacts-storage contacts)
-          save-contact-response (test-system/make-real-request contacts-storage save-contact-request)
-          contact-list-response (test-system/make-real-request contacts-storage contact-list-request)]
+    (let [handler (test-system/construct-handler contacts)
+          save-contact-response (test-system/make-request handler save-contact-request)
+          contact-list-response (test-system/make-request handler contact-list-request)]
       (is (saving-contact-redirects-to-contact-list? save-contact-response))
       (is (saved-contact-is-in-contacts-list? contacts contact contact-list-response)))))
 
@@ -94,7 +95,9 @@
             invalid-contact-request (->> invalid-contact
                                          (hash-map :request-method :post :form-params)
                                          (request/generator sut-path))]
-    (let [invalid-contact-response (test-system/make-oracle-request contacts invalid-contact-request)]
+    (let [invalid-contact-response (-> contacts
+                                       (test-system/construct-handler)
+                                       (test-system/make-request invalid-contact-request))]
       (saving-contact-results-in-client-error? invalid-contact-response)
       (original-data-is-displayed? invalid-contact invalid-contact-response)
       (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))

@@ -83,19 +83,13 @@
 (defn start-server [contacts-storage]
   (jetty/run-jetty (#'handler contacts-storage) {:join? false :port 3000}))
 
-(defn init-contacts-storage [contacts]
-  (let [storage (atom #{})]
-    (set-validator! storage (fn [contacts] (= (count contacts)
-                                              (count (set (map :id contacts))))))
-    (storage/persist storage contacts)))
-
 (defn -main [& _]
-  (start-server (init-contacts-storage #{})))
+  (start-server (storage/contacts-storage #{})))
 
 (comment
   (require '[malli.generator :as malli.generator])
   (defn populate-contacts-storage []
-    (init-contacts-storage (malli.generator/generate storage/contacts-schema)))
+    (storage/contacts-storage (malli.generator/generate storage/contacts-schema)))
   (def server (start-server (populate-contacts-storage)))
 
   (do

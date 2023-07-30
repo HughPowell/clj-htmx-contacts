@@ -3,7 +3,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
-            [contacts.app :as app]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
@@ -29,9 +28,9 @@
             delete-contact-request (request/generator (format sut-path-format id)
                                                       {:request-method :post})
             contact-list-request (request/generator contacts-list-path)]
-    (let [contacts-storage (app/init-contacts-storage contacts)
-          delete-contact-response (test-system/make-real-request contacts-storage delete-contact-request)
-          contact-list-response (test-system/make-real-request contacts-storage contact-list-request)]
+    (let [handler (test-system/construct-handler contacts)
+          delete-contact-response (test-system/make-request handler delete-contact-request)
+          contact-list-response (test-system/make-request handler contact-list-request)]
       (deleting-contact-redirects-to-contact-list? delete-contact-response)
       (deleted-contact-is-not-in-contacts-list? contacts id contact-list-response))))
 
@@ -47,7 +46,9 @@
                  generators/string-alphanumeric)
             request (request/generator (format sut-path-format id)
                                        {:request-method :post})]
-    (let [response (test-system/make-oracle-request contacts request)]
+    (let [response (-> contacts
+                       (test-system/construct-handler)
+                       (test-system/make-request request))]
       (non-existent-contact-not-found? response))))
 
 (comment

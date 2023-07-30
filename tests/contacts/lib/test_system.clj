@@ -14,14 +14,15 @@
   (cond-> request
     (:body request) (update :body enlive/html-snippet)))
 
-(defn make-real-request [contacts request]
+(defn construct-handler [contacts]
+  (-> contacts
+      (oracle/contacts-storage)
+      (app/handler)))
+
+(defn make-request [handler request]
   (let [request' (cond-> request
-                   (string? (:body request)) (update :body #(StringReader. %)))
-        call (app/handler contacts)]
+                   (string? (:body request)) (update :body #(StringReader. %)))]
     (-> request'
-        (call)
+        (handler)
         (keywordise-headers)
         (parse-body))))
-
-(defn make-oracle-request [contacts request]
-  (oracle/fixture (make-real-request contacts request)))
