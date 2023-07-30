@@ -1,5 +1,6 @@
 (ns contacts.app
-  (:require [clojure.string :as string]
+  (:require [aero.core :as aero]
+            [clojure.string :as string]
             [contacts.contact :as contact]
             [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
@@ -84,14 +85,18 @@
   (jetty/run-jetty (#'handler contacts-storage) {:join? false :port 3000}))
 
 (defn -main [& _]
-  (start-server (storage/contacts-storage #{})))
+  (-> "config.edn"
+      (io/resource)
+      (aero/read-config)
+      (:database)
+      (storage/contacts-storage #{})
+      (start-server)))
 
 (comment
   (require '[malli.generator :as malli.generator])
   (defn populate-contacts-storage []
-    (storage/contacts-storage (malli.generator/generate storage/contacts-schema)))
+    (storage/contacts-storage (user/init-database) (malli.generator/generate storage/contacts-schema)))
   (def server (start-server (populate-contacts-storage)))
-
   (do
     (.stop server)
     (def server (start-server (populate-contacts-storage)))))

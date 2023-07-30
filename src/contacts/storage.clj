@@ -2,9 +2,11 @@
   (:require [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]
-            [malli.util :as malli.util])
-  (:refer-clojure :exclude [update])
-  (:import (java.util UUID)))
+            [malli.util :as malli.util]
+            [next.jdbc :as jdbc]
+            [honey.sql :as sql]
+            [honey.sql.helpers :as sql.helpers])
+  (:refer-clojure :exclude [update]))
 
 ;; Schemas
 
@@ -43,34 +45,54 @@
   (update* [this contact])
   (delete* [this id]))
 
-(defn contacts-storage [contacts]
-  (let [store (atom contacts)]
-    (reify ContactsStorage
-      (retrieve* [_] @store)
-      (retrieve* [_ id] (first (get (group-by :id @store) id)))
-      (create* [this contact]
-        (let [contact' (assoc contact :id (str (UUID/randomUUID)))]
-          (swap! store conj contact')
-          this))
-      (update* [this contact]
-        (letfn [(replace [contacts contact]
-                  (set (map
-                         (fn [{:keys [id] :as contact'}]
-                           (if (= id (:id contact))
-                             contact
-                             contact'))
-                         contacts)))]
-          (swap! store replace contact)
-          this))
-      (delete* [this contact-id]
-        (swap! store #(set (remove (fn [{:keys [id]}] (= contact-id id)) %)))
-        this))))
+(def ^:private contacts-table
+  (-> (sql.helpers/create-table :contacts :if-not-exists)
+      (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
+                                 [:first-name :varchar [:not nil]]
+                                 [:last-name :varchar [:not nil]]
+                                 [:phone :varchar [:not nil]]
+                                 [:email :varchar [:not nil]]])
+      (sql/format)))
 
-(defn persist [contacts-storage contacts]
-  (->> contacts
-       set
-       (validate contacts-schema)
-       (contacts-storage)))
+(defn- contacts-insert [contacts]
+  (-> (sql.helpers/insert-into :contacts)
+      (sql.helpers/values (seq contacts))
+      (sql/format)))
+
+(defn contacts-storage [credentials contacts]
+  (let [data-source (jdbc/get-datasource credentials)]
+    (jdbc/execute! data-source contacts-table)
+    (when (seq contacts)
+      (jdbc/execute! data-source (contacts-insert (validate contacts-schema contacts))))
+    (reify ContactsStorage
+      (retrieve* [_]
+        (let [select-all (-> (sql.helpers/select :*)
+                             (sql.helpers/from :contacts)
+                             (sql/format))]
+          (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
+               (set))))
+      (retrieve* [_ id]
+        (let [select-all (-> (sql.helpers/select :*)
+                             (sql.helpers/from :contacts)
+                             (sql.helpers/where [:= :id id])
+                             (sql/format))]
+          (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
+      (create* [this contact]
+        (jdbc/execute! data-source (contacts-insert [contact]))
+        this)
+      (update* [this contact]
+        (let [update (-> (sql.helpers/update :contacts)
+                         (sql.helpers/set (dissoc contact :id))
+                         (sql.helpers/where [:= :id (:id contact)])
+                         (sql/format))]
+          (jdbc/execute! data-source update))
+        this)
+      (delete* [this id]
+        (let [delete (-> (sql.helpers/delete-from :contacts)
+                         (sql.helpers/where [:= :id id])
+                         (sql/format))]
+          (jdbc/execute! data-source delete))
+        this))))
 
 (defn retrieve
   ([contacts-storage]

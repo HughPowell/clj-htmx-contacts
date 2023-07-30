@@ -1,20 +1,26 @@
 {:paths   ["src" "resources"]
  :deps    {org.clojure/clojure                 {:mvn/version "1.11.1"}
            camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
+           com.github.seancorfield/honeysql    {:mvn/version "2.4.1045"}
+           com.github.seancorfield/next.jdbc   {:mvn/version "1.3.883"}
            hiccup/hiccup                       {:mvn/version "2.0.0-RC1"}
+           aero/aero                           {:mvn/version "1.1.6"}
            liberator/liberator                 {:mvn/version "0.15.3"}
            metosin/malli                       {:mvn/version "0.11.0"}
            metosin/reitit-ring                 {:mvn/version "0.7.0-alpha5"}
+           org.postgresql/postgresql           {:mvn/version "42.6.0"}
            org.slf4j/slf4j-nop                 {:mvn/version "2.0.7"}
            ring/ring-jetty-adapter             {:mvn/version "1.10.0"}}
  :aliases {:dev   {:extra-paths ["dev"]
                    :extra-deps  {clj-http/clj-http {:mvn/version "3.12.3"}}}
            :test  {:extra-paths ["tests"]
-                   :extra-deps  {com.gfredericks/test.chuck {:mvn/version "0.2.13"}
-                                 enlive/enlive              {:mvn/version "1.1.6"}
-                                 lambdaisland/kaocha        {:mvn/version "1.85.1342"}
-                                 idle/multiset              {:git/url "https://github.com/win-some/multiset.git"
-                                                             :sha     "80deac7a58ebc27a3f1d0c171e7442c3270b16a6"}}
+                   :extra-deps  {com.gfredericks/test.chuck              {:mvn/version "0.2.13"}
+                                 clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
+                                 enlive/enlive                           {:mvn/version "1.1.6"}
+                                 idle/multiset                           {:git/url "https://github.com/win-some/multiset.git"
+                                                                          :sha     "80deac7a58ebc27a3f1d0c171e7442c3270b16a6"}
+                                 lambdaisland/kaocha                     {:mvn/version "1.85.1342"}
+                                 org.testcontainers/postgresql           {:mvn/version "1.17.6"}}
                    :exec-fn     kaocha.runner/exec-fn
                    :exec-args   {}}
            :build {:paths      ["infra"]
