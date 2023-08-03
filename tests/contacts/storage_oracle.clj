@@ -126,7 +126,7 @@
                 id (generators/return (:id contact))]
     (let [sut-results (delete-contact (storage/contacts-storage (init-database) contacts) id)
           oracle-results (delete-contact (oracle/contacts-storage contacts) id)]
-      (is (not= sut-results oracle-results)))))
+      (is (= sut-results oracle-results)))))
 
 (comment
   (mass-contacts-storage-matches-oracle)
