@@ -1,9 +1,8 @@
 (ns contacts.contact-spec
   (:require [clojure.string :as string]
-            [clojure.test :refer [is]]
-            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
-            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.lib.request :as request]
             [contacts.lib.test-system :as test-system]
             [contacts.storage :as storage]
@@ -27,10 +26,10 @@
     (is (= (:email contact) email))
     (is (string/includes? edit-link (:id contact)))))
 
-(defspec retrieving-a-contact-displays-it
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
-            contact (generators/elements contacts)
-            request (request/generator (format sut-path-format (:id contact)))]
+(deftest retrieving-a-contact-displays-it
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+                contact (generators/elements contacts)
+                request (request/generator (format sut-path-format (:id contact)))]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]
@@ -41,15 +40,15 @@
   (is (= "text/html;charset=UTF-8" (:content-type headers)))
   (is (= 404 status)))
 
-(defspec non-existent-contact-not-found
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            id (generators/such-that
-                 (fn [id]
-                   (and
-                     (seq id)
-                     (not (contains? (set (map :id contacts)) id))))
-                 generators/string-alphanumeric)
-            request (request/generator (format sut-path-format id))]
+(deftest non-existent-contact-not-found
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                id (generators/such-that
+                     (fn [id]
+                       (and
+                         (seq id)
+                         (not (contains? (set (map :id contacts)) id))))
+                     generators/string-alphanumeric)
+                request (request/generator (format sut-path-format id))]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]

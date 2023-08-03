@@ -1,8 +1,7 @@
 (ns contacts.contact.new-spec
-  (:require [clojure.test :refer [is]]
-            [clojure.test.check.clojure-test :refer [defspec]]
+  (:require [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
-            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.new :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
@@ -24,9 +23,9 @@
                                (enlive/select [[:input (enlive/attr? :value)]]))]
     (is (empty? inputs-with-values))))
 
-(defspec getting-a-new-contact-form-provides-an-empty-form
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            request (request/generator sut-path)]
+(deftest getting-a-new-contact-form-provides-an-empty-form
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                request (request/generator sut-path)]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]
@@ -42,13 +41,13 @@
        (is (set (html/rendered-contacts response))
            (set (conj contacts contact)))))
 
-(defspec adding-new-contact-adds-contact-to-contacts-list
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            contact (malli.generator/generator sut/schema)
-            save-contact-request (request/generator sut-path
-                                                    {:request-method :post
-                                                     :form-params    contact})
-            contact-list-request (request/generator contact-list-path)]
+(deftest adding-new-contact-adds-contact-to-contacts-list
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                contact (malli.generator/generator sut/schema)
+                save-contact-request (request/generator sut-path
+                                                        {:request-method :post
+                                                         :form-params    contact})
+                contact-list-request (request/generator contact-list-path)]
     (let [handler (test-system/construct-handler contacts)
           save-contact-response (test-system/make-request handler save-contact-request)
           contact-list-response (test-system/make-request handler contact-list-request)]
@@ -82,19 +81,19 @@
     (is (every? id->error error-ids))
     (is (every? nil? (vals (apply dissoc id->error error-ids))))))
 
-(defspec adding-invalid-contact-returns-to-editing-screen
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            invalid-contact (->> [:map
-                                  [:first-name :string]
-                                  [:last-name :string]
-                                  [:phone :string]
-                                  [:email :string]]
-                                 (malli.generator/generator)
-                                 (generators/such-that
-                                   (fn [contact] (not (malli/validate sut/schema contact)))))
-            invalid-contact-request (->> invalid-contact
-                                         (hash-map :request-method :post :form-params)
-                                         (request/generator sut-path))]
+(deftest adding-invalid-contact-returns-to-editing-screen
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                invalid-contact (->> [:map
+                                      [:first-name :string]
+                                      [:last-name :string]
+                                      [:phone :string]
+                                      [:email :string]]
+                                     (malli.generator/generator)
+                                     (generators/such-that
+                                       (fn [contact] (not (malli/validate sut/schema contact)))))
+                invalid-contact-request (->> invalid-contact
+                                             (hash-map :request-method :post :form-params)
+                                             (request/generator sut-path))]
     (let [invalid-contact-response (-> contacts
                                        (test-system/construct-handler)
                                        (test-system/make-request invalid-contact-request))]

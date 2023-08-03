@@ -1,10 +1,9 @@
 (ns contacts.contacts-spec
   (:require [clojure.set :as set]
             [clojure.string :as string]
-            [clojure.test :refer [is]]
-            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
-            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
             [contacts.lib.request :as request]
@@ -28,18 +27,18 @@
     (subs s start end)))
 
 (defn- successful-response? [response]
-  (is (= 200 (:status response))))
+  (= 200 (:status response)))
 
 (defn- returns-expected-data-type? [response]
-  (is (= "text/html;charset=UTF-8" (get-in response [:headers :content-type]))))
+  (= "text/html;charset=UTF-8" (get-in response [:headers :content-type])))
 
 (defn- all-contacts-are-rendered? [contacts response]
-  (is (= (mset/multiset (html/rendered-contacts response))
-         (mset/multiset contacts))))
+  (= (mset/multiset (html/rendered-contacts response))
+     (mset/multiset contacts)))
 
-(defspec all-contacts-returned-when-no-query
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            request (request-generator sut-path)]
+(deftest all-contacts-returned-when-no-query
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                request (request-generator sut-path)]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]
@@ -65,17 +64,17 @@
     (is (set/subset? rendered-contacts
                      (set contacts)))))
 
-(defspec contacts-that-match-search-are-rendered
-  (for-all [contacts (malli.generator/generator storage/contacts-schema)
-            string' (if (seq contacts)
-                      (generators/one-of
-                        [(->> contacts
-                              (mapcat vals)
-                              (generators/elements))
-                         generators/string-alphanumeric])
-                      generators/string-alphanumeric)
-            search (substring-generator string')
-            request (request-generator sut-path search)]
+(deftest contacts-that-match-search-are-rendered
+  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+                string' (if (seq contacts)
+                          (generators/one-of
+                            [(->> contacts
+                                  (mapcat vals)
+                                  (generators/elements))
+                             generators/string-alphanumeric])
+                          generators/string-alphanumeric)
+                search (substring-generator string')
+                request (request-generator sut-path search)]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]

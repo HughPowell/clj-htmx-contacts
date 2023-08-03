@@ -1,9 +1,8 @@
 (ns contacts.contact.edit-spec
   (:require [clojure.string :as string]
-            [clojure.test :refer [is]]
-            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
-            [com.gfredericks.test.chuck.clojure-test :refer [for-all]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.edit :as sut]
             [contacts.lib.test-system :as test-system]
             [contacts.lib.html :as html]
@@ -31,10 +30,10 @@
     (is (= (dissoc contact :id) rendered-contact))
     (is (every? #(string/includes? % (:id contact)) actions))))
 
-(defspec renders-an-editable-contact
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
-            contact (generators/elements contacts)
-            request (request/generator (format sut-path-format (:id contact)))]
+(deftest renders-an-editable-contact
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+                contact (generators/elements contacts)
+                request (request/generator (format sut-path-format (:id contact)))]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]
@@ -51,14 +50,14 @@
        (is (set (html/rendered-contacts response))
            (set (conj contacts contact)))))
 
-(defspec updating-contact-updates-contact-in-contacts-list
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
-            id (generators/fmap :id (generators/elements contacts))
-            new-contact-data (malli.generator/generator sut/schema)
-            save-contact-request (request/generator (format sut-path-format id)
-                                                    {:request-method :post
-                                                     :form-params    new-contact-data})
-            contact-list-request (request/generator contacts-list-path)]
+(deftest updating-contact-updates-contact-in-contacts-list
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+                id (generators/fmap :id (generators/elements contacts))
+                new-contact-data (malli.generator/generator sut/schema)
+                save-contact-request (request/generator (format sut-path-format id)
+                                                        {:request-method :post
+                                                         :form-params    new-contact-data})
+                contact-list-request (request/generator contacts-list-path)]
     (let [handler (test-system/construct-handler contacts)
           save-contact-response (test-system/make-request handler save-contact-request)
           contact-list-response (test-system/make-request handler contact-list-request)]
@@ -93,20 +92,20 @@
     (is (every? id->error error-ids))
     (is (every? nil? (vals (apply dissoc id->error error-ids))))))
 
-(defspec updating-contact-with-invalid-data-returns-to-editing-screen
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
-            id (generators/fmap :id (generators/elements contacts))
-            invalid-contact (->> [:map
-                                  [:first-name :string]
-                                  [:last-name :string]
-                                  [:phone :string]
-                                  [:email :string]]
-                                 (malli.generator/generator)
-                                 (generators/such-that
-                                   (fn [contact] (not (malli/validate sut/schema contact)))))
-            invalid-contact-request (->> invalid-contact
-                                         (hash-map :request-method :post :form-params)
-                                         (request/generator (format sut-path-format id)))]
+(deftest updating-contact-with-invalid-data-returns-to-editing-screen
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+                id (generators/fmap :id (generators/elements contacts))
+                invalid-contact (->> [:map
+                                      [:first-name :string]
+                                      [:last-name :string]
+                                      [:phone :string]
+                                      [:email :string]]
+                                     (malli.generator/generator)
+                                     (generators/such-that
+                                       (fn [contact] (not (malli/validate sut/schema contact)))))
+                invalid-contact-request (->> invalid-contact
+                                             (hash-map :request-method :post :form-params)
+                                             (request/generator (format sut-path-format id)))]
     (let [invalid-contact-response (-> contacts
                                        (test-system/construct-handler)
                                        (test-system/make-request invalid-contact-request))]
@@ -117,17 +116,17 @@
 (defn- non-existent-contact-not-found? [{:keys [status]}]
   (is (= 404 status)))
 
-(defspec updating-non-existent-contact-fails
-  (for-all [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
-            id (generators/such-that
-                 (fn [id]
-                   (and (seq id)
-                        (not (contains? (set (map :id contacts)) id))))
-                 generators/string-alphanumeric)
-            contact-data (malli.generator/generator storage/existing-contact-schema)
-            request (request/generator (format sut-path-format id)
-                                       {:request-method :post
-                                        :form-params    contact-data})]
+(deftest updating-non-existent-contact-fails
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+                id (generators/such-that
+                     (fn [id]
+                       (and (seq id)
+                            (not (contains? (set (map :id contacts)) id))))
+                     generators/string-alphanumeric)
+                contact-data (malli.generator/generator storage/existing-contact-schema)
+                request (request/generator (format sut-path-format id)
+                                           {:request-method :post
+                                            :form-params    contact-data})]
     (let [response (-> contacts
                        (test-system/construct-handler)
                        (test-system/make-request request))]
