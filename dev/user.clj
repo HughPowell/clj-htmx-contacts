@@ -3,8 +3,7 @@
             [next.jdbc :as jdbc]))
 
 (defn init-database []
-  (storage-oracle/credentials
-    (storage-oracle/init-database)))
+  (storage-oracle/init-database))
 
 (def stop-database storage-oracle/stop-database)
 
