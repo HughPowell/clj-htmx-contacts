@@ -1,0 +1,39 @@
+version: '3.8'
+
+x-common-variables: &common-variables
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-5uperUserP@55w0rd!}
+  POSTGRES_USER: ${POSTGRES_USER:-clj-htmx-contacts}
+  POSTGRES_DB: ${POSTGRES_DB:-clj-htmx-contacts}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  POSTGRES_HOST: ${POSTGRES_HOST:-localhost}
+
+name: "net_hughpowell"
+services:
+  clj-htmx-contacts:
+    restart: always
+    platform: linux/amd64
+    build:
+      context: ../../
+      dockerfile: ./infra/docker/Dockerfile
+      network: host
+    environment:
+      <<: *common-variables
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    network_mode: host
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres-database:
+        condition: service_healthy
+
+  postgres-database:
+    restart: always
+    image: postgres:15.4-alpine
+    environment: *common-variables
+    healthcheck:
+      test: pg_isready --user $${POSTGRES_USER}
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    ports:
+      - "5432:5432"

@@ -1,4 +1,5 @@
-{:database {:dbname   #env POSTGRES_DB
+{:database {:dbtype   "postgresql"
+            :dbname   #env POSTGRES_DB
             :user     #env POSTGRES_USER
             :password #env POSTGRES_PASSWORD
             :host     #env POSTGRES_HOST
