@@ -1,10 +1,29 @@
 (ns contacts.page
   (:require [hiccup.def :refer [defelem]]
             [hiccup.form :as form]
-            [hiccup.page :as page]))
+            [hiccup.page :as page]
+            [hiccup2.core :as hiccup2]))
+
+(defmacro html5
+  "Create a HTML5 document with the supplied contents."
+  [options & contents]
+  (if-not (map? options)
+    `(html5 {} ~options ~@contents)
+    (if (options :xml?)
+      `(let [options# (dissoc ~options :xml?)]
+         (str
+           (hiccup2/html {:mode :xml}
+                         (page/xml-declaration (options# :encoding "UTF-8"))
+                         (page/doctype :html5)
+                         (page/xhtml-tag options# (options# :lang) ~@contents))))
+      `(let [options# (dissoc ~options :xml?)]
+         (str
+           (hiccup2/html {:mode :html}
+                         (page/doctype :html5)
+                         [:html options# ~@contents]))))))
 
 (defn render [flash content]
-  (page/html5
+  (html5
     {:lang "en"}
     [:head
      [:title "Contact App"]
