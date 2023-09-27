@@ -1,6 +1,12 @@
 {:database {:dbtype   "postgresql"
-            :dbname   #env POSTGRES_DB
-            :user     #env POSTGRES_USER
-            :password #env POSTGRES_PASSWORD
-            :host     #env POSTGRES_HOST
-            :port     #long #env POSTGRES_PORT}}
+            :dbname   #or [#env POSTGRES_DB ""]
+            :user     #or [#env POSTGRES_USER ""]
+            :password #or [#env POSTGRES_PASSWORD ""]
+            :host     #or [#env POSTGRES_HOST ""]
+            :port     #long #or [#env POSTGRES_PORT 0]}
+ :auth     {:client-id     #or [#env AUTH_CLIENT_ID "6DVu7HeJe6JCyTSMJBp4LCRHmsqlnLfy"]
+            :client-secret #or [#env AUTH_CLIENT_SECRET ""]
+            :login-uri     #or [#env AUTH_LOGIN_URI "https://clj-htmx-contacts.au.auth0.com/authorize"]
+            :authorise-uri #or [#env AUTH_AUTHORISE_URI "https://clj-htmx-contacts.au.auth0.com/oauth/token"]
+            :logout-uri    #or [#env AUTH_LOGOUT_URI "https://clj-htmx-contacts.au.auth0.com/oidc/logout"]
+            :redirect-uri  #or [#env AUTH_REDIRECT_URI "http://localhost:3000/"]}}

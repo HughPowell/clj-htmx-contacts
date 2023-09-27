@@ -46,9 +46,9 @@
 (defn- add-contact []
   [:p (element/link-to "/contacts/new" "Add Contact")])
 
-(defn render [request contacts query]
+(defn render [ctx contacts query]
   (page/render
-    (:flash request)
+    ctx
     (list
       (search-form query)
       (table contacts)
@@ -58,11 +58,11 @@
 
 (defn resource [defaults contacts-storage]
   (liberator/resource defaults
-                      :handle-ok (fn [{:keys [request]}]
+                      :handle-ok (fn [{:keys [request] :as ctx}]
                                    (let [contacts (storage/retrieve contacts-storage)
                                          query (get-in request [:params :query])]
                                      (render
-                                       request
+                                       ctx
                                        (find contacts query)
                                        query)))))
 

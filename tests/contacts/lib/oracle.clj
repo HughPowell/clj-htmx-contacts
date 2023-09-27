@@ -1,5 +1,8 @@
 (ns contacts.lib.oracle
-  (:import (contacts.storage ContactsStorage)))
+  (:require [contacts.auth]
+            [contacts.storage])
+  (:import (contacts.auth Authorization)
+           (contacts.storage ContactsStorage)))
 
 (defn contacts-storage [contacts]
   (let [store (atom (-> (group-by :id contacts) (update-vals first)))
@@ -25,6 +28,11 @@
         (swap! store assoc (:id contact) contact) this)
       (delete* [this id]
         (swap! store dissoc id) this))))
+
+(defn authorization []
+  (reify Authorization
+    (authorized? [_ _] {:authorization-id "test"})
+    (handle-unauthorized [_ _])))
 
 (comment
   )

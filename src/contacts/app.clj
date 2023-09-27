@@ -1,6 +1,7 @@
 (ns contacts.app
   (:require [aero.core :as aero]
             [clojure.string :as string]
+            [contacts.auth :as auth]
             [contacts.contact :as contact]
             [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
@@ -11,8 +12,10 @@
             [contacts.request :as request]
             [contacts.storage :as storage]
             [liberator.core :refer [resource]]
+            [liberator.representation :as representation]
             [reitit.ring :as ring]
             [ring.adapter.jetty :as jetty]
+            [ring.middleware.cookies :as cookies]
             [ring.middleware.flash :as flash]
             [ring.middleware.session :as session])
   (:gen-class))
@@ -20,22 +23,24 @@
 (def ^:private return-home
   [:p "Here's the incantation for getting back " [:a {:href "/"} "Home"] "."])
 
-(defn we-messed-up [{:keys [request]}]
+(defn we-messed-up [ctx]
   (page/render
-    (:flash request)
+    ctx
     (list
       [:h1 "Ooops ... looks like we messed up ... sorry about that."]
       return-home)))
 
-(defn- could-not-find-it [{:keys [request]}]
+(defn- could-not-find-it [{:keys [ctx]}]
   (page/render
-    (:flash request)
+    ctx
     (list
       [:h1 "Ooops ... we've looked under the sofa ... but we still can't find it."]
       return-home)))
 
-(def defaults
+(defn defaults [auth]
   {:available-media-types ["text/html"]
+   :authorized?           (fn [ctx] (auth/authorized? auth ctx))
+   :handle-unauthorized   (fn [ctx] (auth/handle-unauthorized auth ctx))
    :handle-not-acceptable (fn [{:keys [request]}]
                             (string/join
                               " "
@@ -46,28 +51,28 @@
    :handle-not-found      (fn [{:keys [request]}] (could-not-find-it request))
    :handle-exception      (fn [{:keys [request]}] (we-messed-up request))})
 
-(defn router [contacts-storage]
-  (ring/router [["/" (resource defaults
-                       :exists? false
-                       :existed? true
-                       :moved-temporarily? true
-                       :location "/contacts")]
-                ["/favicon.ico" (resource defaults
+(defn router [auth contacts-storage]
+  (ring/router [["/" (resource (defaults auth)
+                       :handle-ok (fn [_]
+                                    (representation/ring-response
+                                      {:status  303
+                                       :headers {"Location" "/contacts"}})))]
+                ["/favicon.ico" (resource (defaults auth)
                                   :available-media-types ["image/x-icon"]
                                   :handle-ok (fn [_] (-> "public/favicon.ico"
                                                          (io/resource)
                                                          (io/input-stream))))]
                 ["/public/*" (ring/create-resource-handler)]
-                ["/contacts" (contacts/resource defaults contacts-storage)]
+                ["/contacts" (contacts/resource (defaults auth) contacts-storage)]
                 ["/contacts/new" {:conflicting true
-                                  :handler     (contact.new/resource defaults contacts-storage)}]
+                                  :handler     (contact.new/resource (defaults auth) contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
-                                  :handler     (contact/resource defaults contacts-storage)}]
-                ["/contacts/:id/edit" (edit/resource defaults contacts-storage)]
-                ["/contacts/:id/delete" (delete/resource defaults contacts-storage)]]))
+                                  :handler     (contact/resource (defaults auth) contacts-storage)}]
+                ["/contacts/:id/edit" (edit/resource (defaults auth) contacts-storage)]
+                ["/contacts/:id/delete" (delete/resource (defaults auth) contacts-storage)]]))
 
-(defn handler [contacts-storage]
-  (let [router (router contacts-storage)]
+(defn handler [auth contacts-storage]
+  (let [router (router auth contacts-storage)]
     (ring/ring-handler
       router
       (ring/create-default-handler
@@ -76,27 +81,41 @@
          :not-acceptable (fn [request] {:status 500
                                         :body   (we-messed-up request)})})
       {:middleware     [session/wrap-session
+                        cookies/wrap-cookies
                         flash/wrap-flash
                         #(request/wrap-params % {:router router})]
        :inject-match?  false
        :inject-router? false})))
 
-(defn start-server [contacts-storage]
-  (jetty/run-jetty (#'handler contacts-storage) {:join? false :port 3000}))
+(defn start-server [contacts-storage auth]
+  (jetty/run-jetty (#'handler auth contacts-storage) {:join? false :port 3000}))
 
 (defn -main [& _]
-  (-> "config.edn"
-      (io/resource)
-      (aero/read-config)
-      (:database)
-      (storage/contacts-storage #{})
-      (start-server)))
+  (let [config (-> "config.edn"
+                   (io/resource)
+                   (aero/read-config))]
+    (-> config
+        (:database)
+        (storage/contacts-storage #{})
+        (start-server (auth/auth0-authorization (:auth config))))))
 
 (comment
-  (require '[malli.generator :as malli.generator])
-  (defn populate-contacts-storage []
-    (storage/contacts-storage (user/init-database) (malli.generator/generate storage/contacts-schema)))
-  (def server (start-server (populate-contacts-storage)))
+  (do
+    (require '[malli.generator :as malli.generator])
+    (defn populate-contacts-storage []
+      (storage/contacts-storage (user/init-database) (malli.generator/generate storage/contacts-schema)))
+    (defn auth-config []
+      (-> "config.edn"
+          (io/resource)
+          (aero/read-config)
+          (:auth)))
+
+    (let [auth (auth/auth0-authorization (auth-config))]
+      (def server (start-server (populate-contacts-storage) auth)))
+    )
+
+  *e
   (do
     (.stop server)
-    (def server (start-server (populate-contacts-storage)))))
+    (let [auth (auth/auth0-authorization (auth-config))]
+      (def server (start-server (populate-contacts-storage) auth)))))

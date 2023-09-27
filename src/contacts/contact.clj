@@ -6,9 +6,9 @@
 
 ;; Rendering
 
-(defn- render [request {:keys [id first-name last-name phone email]}]
+(defn- render [ctx {:keys [id first-name last-name phone email]}]
   (page/render
-    (:flash request)
+    ctx
     (list
       [:h1 (string/trim (format "%s %s" first-name last-name))]
       [:div
@@ -27,5 +27,5 @@
                                  (if-let [contact (storage/retrieve contacts-storage (get-in request [:params :id]))]
                                    [true {:contact contact}]
                                    false))
-                      :handle-ok (fn [{:keys [request contact]}]
-                                   (render request contact))))
+                      :handle-ok (fn [{:keys [contact] :as ctx}]
+                                   (render ctx contact))))

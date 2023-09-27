@@ -34,10 +34,10 @@
     (string/join ", " (conj (vec (drop-last 2 option-list)) suffix))))
 
 (defn- render
-  ([request] (render request nil nil))
-  ([request contact errors]
+  ([ctx] (render ctx nil nil))
+  ([ctx contact errors]
    (page/render
-     (:flash request)
+     ctx
      (list
        (form/form-to
          [:post "/contacts/new"]
@@ -75,9 +75,9 @@
              (storage/create contacts-storage contact))
     :handle-see-other (representation/ring-response
                         {:flash "New Contact Created!"})
-    :handle-malformed (fn [{:keys [request contact validation-errors]}]
+    :handle-malformed (fn [{:keys [contact validation-errors] :as ctx}]
                         (representation/ring-response
-                          (render request contact (malli.error/humanize validation-errors))
+                          (render ctx contact (malli.error/humanize validation-errors))
                           {:headers {"Content-Type" "text/html"}}))
-    :handle-ok (fn [{:keys [request]}]
-                 (render request))))
+    :handle-ok (fn [ctx]
+                 (render ctx))))

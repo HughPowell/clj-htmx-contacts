@@ -28,7 +28,7 @@
 (deftest not-found-returned-for-unknown-paths
   (checking "" [path (generators/such-that
                        (fn [path]
-                         (let [existing-routes (->> (app/router #{})
+                         (let [existing-routes (->> (app/router nil #{})
                                                     (reitit/routes)
                                                     (map first)
                                                     (set))]

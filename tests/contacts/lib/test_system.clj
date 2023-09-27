@@ -15,9 +15,9 @@
     (:body request) (update :body enlive/html-snippet)))
 
 (defn construct-handler [contacts]
-  (-> contacts
-      (oracle/contacts-storage)
-      (app/handler)))
+  (->> contacts
+       (oracle/contacts-storage)
+       (app/handler (oracle/authorization))))
 
 (defn make-request [handler request]
   (let [request' (cond-> request
