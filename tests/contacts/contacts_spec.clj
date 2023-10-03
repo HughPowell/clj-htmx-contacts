@@ -4,9 +4,9 @@
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.lib.test-system :as test-system]
-            [contacts.lib.html :as html]
-            [contacts.lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
+            [contacts.test-lib.html :as html]
+            [contacts.test-lib.request :as request]
             [contacts.storage :as storage]
             [idle.multiset.api :as mset]
             [malli.generator :as malli.generator]))

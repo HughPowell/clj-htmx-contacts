@@ -3,8 +3,8 @@
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.lib.request :as request]
-            [contacts.lib.test-system :as test-system]
+            [contacts.test-lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
             [contacts.storage :as storage]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))

@@ -1,4 +1,4 @@
-(ns contacts.lib.request
+(ns contacts.test-lib.request
   (:require [clojure.string :as string]
             [clojure.test.check.generators :as generators]
             [malli.generator :as malli.generator]

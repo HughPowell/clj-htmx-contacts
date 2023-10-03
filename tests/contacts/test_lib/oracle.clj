@@ -1,4 +1,4 @@
-(ns contacts.lib.oracle
+(ns contacts.test-lib.oracle
   (:require [contacts.auth]
             [contacts.storage])
   (:import (contacts.auth Authorization)

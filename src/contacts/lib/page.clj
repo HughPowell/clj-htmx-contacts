@@ -1,4 +1,4 @@
-(ns contacts.page
+(ns contacts.lib.page
   (:require [hiccup.def :refer [defelem]]
             [hiccup.form :as form]
             [hiccup.page :as page]

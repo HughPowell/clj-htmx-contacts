@@ -3,7 +3,7 @@
             [camel-snake-kebab.core :as camel-snake-kebab]
             [cheshire.core :as cheshire]
             [clj-http.client :as client]
-            [contacts.request :as request]
+            [contacts.lib.request :as request]
             [java-time.api :as java-time]
             [liberator.representation :as representation])
   (:import (java.util UUID)))

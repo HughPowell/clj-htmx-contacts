@@ -1,4 +1,4 @@
-(ns contacts.lib.html
+(ns contacts.test-lib.html
   (:require [net.cgrand.enlive-html :as enlive]))
 
 (defn table->map [snippet headers]

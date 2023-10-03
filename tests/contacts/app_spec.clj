@@ -4,8 +4,8 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.app :as app]
-            [contacts.lib.test-system :as test-system]
-            [contacts.lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
+            [contacts.test-lib.request :as request]
             [reitit.core :as reitit]))
 
 (defn- unsupported-media-type-response? [{:keys [status]}]

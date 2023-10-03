@@ -1,7 +1,7 @@
 (ns contacts.contact.new
   (:require [clojure.string :as string]
             [contacts.contact.schemas :as schemas]
-            [contacts.page :as page]
+            [contacts.lib.page :as page]
             [contacts.storage :as storage]
             [hiccup.form :as form]
             [liberator.core :as liberator]

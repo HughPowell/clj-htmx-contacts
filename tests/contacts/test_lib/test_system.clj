@@ -1,8 +1,8 @@
-(ns contacts.lib.test-system
+(ns contacts.test-lib.test-system
   (:require [camel-snake-kebab.core :as camel-snake-kebab]
             [camel-snake-kebab.extras :as camel-snake-kebab.extras]
             [contacts.app :as app]
-            [contacts.lib.oracle :as oracle]
+            [contacts.test-lib.oracle :as oracle]
             [contacts.storage-oracle]
             [net.cgrand.enlive-html :as enlive])
   (:import (java.io StringReader)))

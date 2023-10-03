@@ -1,6 +1,6 @@
 (ns contacts.contacts
   (:refer-clojure :exclude [find])
-  (:require [contacts.page :as page]
+  (:require [contacts.lib.page :as page]
             [clojure.string :as string]
             [contacts.storage :as storage]
             [hiccup.element :as element]
