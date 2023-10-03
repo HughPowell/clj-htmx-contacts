@@ -1,4 +1,4 @@
-(ns contacts.storage
+(ns contacts.system.storage
   (:require [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]

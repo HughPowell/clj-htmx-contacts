@@ -1,7 +1,7 @@
-(ns contacts.app
+(ns contacts.system.app
   (:require [aero.core :as aero]
             [clojure.string :as string]
-            [contacts.auth :as auth]
+            [contacts.system.auth :as auth]
             [contacts.contact :as contact]
             [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
@@ -10,7 +10,7 @@
             [clojure.java.io :as io]
             [contacts.lib.page :as page]
             [contacts.lib.request :as request]
-            [contacts.storage :as storage]
+            [contacts.system.storage :as storage]
             [liberator.core :refer [resource]]
             [liberator.representation :as representation]
             [reitit.ring :as ring]

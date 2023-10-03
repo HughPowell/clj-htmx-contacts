@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [find])
   (:require [contacts.lib.page :as page]
             [clojure.string :as string]
-            [contacts.storage :as storage]
+            [contacts.system.storage :as storage]
             [hiccup.element :as element]
             [hiccup.form :as form]
             [liberator.core :as liberator]))

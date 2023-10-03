@@ -1,8 +1,8 @@
 (ns contacts.test-lib.oracle
-  (:require [contacts.auth]
-            [contacts.storage])
-  (:import (contacts.auth Authorization)
-           (contacts.storage ContactsStorage)))
+  (:require [contacts.system.auth]
+            [contacts.system.storage])
+  (:import (contacts.system.auth Authorization)
+           (contacts.system.storage ContactsStorage)))
 
 (defn contacts-storage [contacts]
   (let [store (atom (-> (group-by :id contacts) (update-vals first)))

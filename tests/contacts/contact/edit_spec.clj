@@ -7,7 +7,7 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.storage :as storage]
+            [contacts.system.storage :as storage]
             [malli.core :as malli]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))

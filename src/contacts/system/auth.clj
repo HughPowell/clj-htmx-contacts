@@ -1,4 +1,4 @@
-(ns contacts.auth
+(ns contacts.system.auth
   (:require [buddy.sign.jwt :as jwt]
             [camel-snake-kebab.core :as camel-snake-kebab]
             [cheshire.core :as cheshire]

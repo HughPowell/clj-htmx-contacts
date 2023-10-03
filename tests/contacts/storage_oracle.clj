@@ -6,7 +6,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.new :as new]
             [contacts.test-lib.oracle :as oracle]
-            [contacts.storage :as storage]
+            [contacts.system.storage :as storage]
             [honey.sql :as sql]
             [honey.sql.helpers :refer [truncate]]
             [malli.generator :as malli.generator]

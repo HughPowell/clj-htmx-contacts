@@ -1,7 +1,7 @@
 (ns contacts.contact
   (:require [clojure.string :as string]
             [contacts.lib.page :as page]
-            [contacts.storage :as storage]
+            [contacts.system.storage :as storage]
             [liberator.core :as liberator]))
 
 ;; Rendering
