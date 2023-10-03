@@ -3,7 +3,7 @@
             [camel-snake-kebab.core :as camel-snake-kebab]
             [cheshire.core :as cheshire]
             [clj-http.client :as client]
-            [contacts.lib.request :as request]
+            [contacts.lib.http :as http]
             [java-time.api :as java-time]
             [liberator.representation :as representation])
   (:import (java.util UUID)))
@@ -30,7 +30,7 @@
                              (cheshire/parse-string camel-snake-kebab/->kebab-case-keyword)
                              (:id-token))
                 {:keys [exp]} (jwt/unsign id-token (:client-secret config))
-                expires (-> exp (java-time/duration :seconds) (request/->cookie-expires-time))]
+                expires (-> exp (java-time/duration :seconds) (http/->cookie-expires-time))]
             [expires id-token])
           (catch Exception _))))))
 
@@ -54,7 +54,7 @@
 
 (def ^:private cookie-reset
   (->> (java-time/duration 0 :seconds)
-       (request/->cookie-expires-time)
+       (http/->cookie-expires-time)
        (cookie "")))
 
 (defn- auth-redirect? [request]
@@ -79,7 +79,7 @@
         (authorization-cookie? request)
         (if-let [authorization-id (authorise-cookie config request)]
           [true {:authorization-id authorization-id
-                 :logout-uri       (request/construct-url
+                 :logout-uri       (http/construct-url
                                      (:logout-uri config)
                                      {:post-logout-redirect-uri (:redirect-uri config)
                                       :id-token-hint            (get-in request [:cookies "authorization" :value])
@@ -105,7 +105,7 @@
                                                :scope         "openid"
                                                :redirect-uri  (:redirect-uri config)
                                                :state         state})
-                                       (request/construct-url (:login-uri config)))}
+                                       (http/construct-url (:login-uri config)))}
              :cookies {:state         (cookie state)
-                       :location      (cookie (request/construct-url request))
+                       :location      (cookie (http/construct-url request))
                        :authorization cookie-reset}}))))))
