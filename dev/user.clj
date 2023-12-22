@@ -1,6 +1,13 @@
 (ns user
-  (:require [contacts.storage-oracle :as storage-oracle]
-            [next.jdbc :as jdbc]))
+  (:require [clojure.repl]
+            [clojure.repl.deps]
+            [contacts.storage-oracle :as storage-oracle]
+            [next.jdbc :as jdbc]
+            [potemkin]))
+
+(potemkin/import-vars
+  [clojure.repl doc]
+  [clojure.repl.deps sync-deps])
 
 (defn init-database []
   (storage-oracle/init-database))
