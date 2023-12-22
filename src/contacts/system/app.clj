@@ -100,22 +100,5 @@
         (start-server (auth/auth0-authorization (:auth config))))))
 
 (comment
-  (do
-    (require '[malli.generator :as malli.generator])
-    (defn populate-contacts-storage []
-      (storage/contacts-storage (user/init-database) (malli.generator/generate storage/contacts-schema)))
-    (defn auth-config []
-      (-> "config.edn"
-          (io/resource)
-          (aero/read-config)
-          (:auth)))
-
-    (let [auth (auth/auth0-authorization (auth-config))]
-      (def server (start-server (populate-contacts-storage) auth)))
-    )
-
-  *e
-  (do
-    (.stop server)
-    (let [auth (auth/auth0-authorization (auth-config))]
-      (def server (start-server (populate-contacts-storage) auth)))))
+  (user/reset-app)
+  )

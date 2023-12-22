@@ -15,10 +15,10 @@
            org.postgresql/postgresql           {:mvn/version "42.6.0"}
            org.slf4j/slf4j-nop                 {:mvn/version "2.0.7"}
            ring/ring-jetty-adapter             {:mvn/version "1.10.0"}}
- :aliases {:dev   {:extra-paths   ["dev"]
+ :aliases {:dev   {:extra-paths   ["dev" "shared"]
                    :extra-deps    {potemkin/potemkin {:mvn/version "0.4.5"}}
                    :override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}}
-           :test  {:extra-paths ["tests"]
+           :test  {:extra-paths ["tests" "shared"]
                    :extra-deps  {com.gfredericks/test.chuck              {:mvn/version "0.2.13"}
                                  clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
                                  enlive/enlive                           {:mvn/version "1.1.6"}
