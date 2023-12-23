@@ -6,8 +6,7 @@
             [contacts.lib.http :as http]
             [com.stuartsierra.component :as component]
             [java-time.api :as java-time]
-            [liberator.representation :as representation])
-  (:import (java.util UUID)))
+            [liberator.representation :as representation]))
 
 (defprotocol Authorization
   (authorized? [this ctx]
@@ -91,7 +90,7 @@
         [false {:login-completed? false}]))
 
     (handle-unauthorized [_ {:keys [request login-completed? id-token expiry]}]
-      (let [state (str (UUID/randomUUID))]
+      (let [state (str (random-uuid))]
         (if login-completed?
           (representation/ring-response
             {:status  303
