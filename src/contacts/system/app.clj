@@ -12,7 +12,6 @@
             [contacts.lib.page :as page]
             [contacts.lib.request :as request]
             [contacts.system.storage :as storage]
-            [database-test-container]
             [liberator.core :refer [resource]]
             [liberator.representation :as representation]
             [reitit.ring :as ring]
