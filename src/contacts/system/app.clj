@@ -111,10 +111,7 @@
 
 (defn system-map [config]
   (component/system-map
-    :database-credentials (database-test-container/database-credentials-component)
-    :storage (component/using
-               (storage/storage-component #{})
-               {:credentials :database-credentials})
+    :storage (storage/storage-component config)
     :auth (auth/auth-component config)
     :app (component/using (server-component)
                           {:contacts-storage :storage

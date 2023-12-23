@@ -125,8 +125,10 @@
   (stop [component]
     (assoc component :storage nil)))
 
-(defn storage-component [contacts]
-  (map->StorageComponent {:contacts contacts}))
+(defn storage-component [contacts-or-config]
+  (if (map? contacts-or-config)
+    (map->StorageComponent {:credentials {:credentials (:database contacts-or-config)}})
+    (map->StorageComponent {:contacts contacts-or-config})))
 
 (comment
   )
