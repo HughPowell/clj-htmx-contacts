@@ -9,22 +9,24 @@
             [contacts.system.storage :as storage]
             [malli.generator :as malli.generator]))
 
+(def ^:private database (atom nil))
+
 (defn postgres-fixture [test]
-  (database-test-container/init-database)
+  (reset! database (database-test-container/init-database))
   (test)
-  (database-test-container/stop-database))
+  (swap! database database-test-container/stop-database))
 
 (use-fixtures :once postgres-fixture)
 
-(defn- drop-table-fixture [test]
-  (test)
-  (database-test-container/truncate-contacts-table))
-
-(use-fixtures :each drop-table-fixture)
+(defn reset-database []
+  (if @database
+    (database-test-container/truncate-contacts-table @database)
+    (reset! database (database-test-container/init-database)))
+  (database-test-container/credentials @database))
 
 (deftest mass-contacts-storage-matches-oracle
   (checking "" [contacts (malli.generator/generator storage/contacts-schema)]
-    (is (= (storage/retrieve (storage/contacts-storage (database-test-container/init-database) contacts))
+    (is (= (storage/retrieve (storage/contacts-storage (reset-database) contacts))
            (storage/retrieve (oracle/contacts-storage contacts))))))
 
 (defn- ids-are-unique? [contacts]
@@ -42,7 +44,7 @@
 (deftest storing-new-contact-matches-oracle
   (checking "" [contacts (malli.generator/generator storage/contacts-schema)
                 contact (malli.generator/generator new/schema)]
-    (let [sut-results (-> (database-test-container/init-database)
+    (let [sut-results (-> (reset-database)
                           (storage/contacts-storage contacts)
                           (persist-contact contact))
           oracle-results (persist-contact (oracle/contacts-storage contacts) contact)]
@@ -56,7 +58,7 @@
                            seq
                            (malli.generator/generator storage/contacts-schema))
                 id (generators/elements (map :id contacts))]
-    (let [sut-storage (storage/contacts-storage (database-test-container/init-database) contacts)
+    (let [sut-storage (storage/contacts-storage (reset-database) contacts)
           oracle-storage (oracle/contacts-storage contacts)]
       (is (= (storage/retrieve sut-storage id)
              (storage/retrieve oracle-storage id)))
@@ -75,7 +77,7 @@
                 updated-contact (generators/fmap
                                   #(assoc % :id id)
                                   (malli.generator/generator storage/existing-contact-schema))]
-    (let [sut-storage (storage/contacts-storage (database-test-container/init-database) contacts)
+    (let [sut-storage (storage/contacts-storage (reset-database) contacts)
           oracle-storage (oracle/contacts-storage contacts)]
       (is (= (update-contact sut-storage updated-contact)
              (update-contact oracle-storage updated-contact))))))
@@ -89,7 +91,7 @@
   (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
                 contact (generators/elements contacts)
                 id (generators/return (:id contact))]
-    (let [sut-results (delete-contact (storage/contacts-storage (database-test-container/init-database) contacts) id)
+    (let [sut-results (delete-contact (storage/contacts-storage (reset-database) contacts) id)
           oracle-results (delete-contact (oracle/contacts-storage contacts) id)]
       (is (= sut-results oracle-results)))))
 

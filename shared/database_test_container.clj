@@ -1,13 +1,12 @@
 (ns database-test-container
   (:require [clj-test-containers.core :as test-containers]
             [clojure.test :refer :all]
+            [com.stuartsierra.component :as component]
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers]
             [next.jdbc :as jdbc])
   (:import (org.postgresql.util PSQLException)
            (org.testcontainers.containers PostgreSQLContainer)))
-
-(def database (atom nil))
 
 (defn credentials [database-container]
   {:dbtype   "postgresql"
@@ -17,24 +16,34 @@
    :host     (.getHost (:container database-container))
    :port     (get (:mapped-ports database-container) 5432)})
 
-(defn truncate-contacts-table []
-  (when @database
+(defn truncate-contacts-table [database]
+  (when database
     (let [truncate (-> (sql.helpers/truncate :contacts :if-exists)
                        (sql/format))]
       (try
-        (jdbc/execute! (jdbc/get-datasource (credentials @database)) truncate)
+        (jdbc/execute! (jdbc/get-datasource (credentials database)) truncate)
         (catch PSQLException _)))))
 
 (defn init-database []
-  (if-not @database
-    (reset! database
-            (-> (test-containers/init {:container     (PostgreSQLContainer. "postgres:15.3")
-                                       :exposed-ports [5432]})
-                (test-containers/start!)))
-    (truncate-contacts-table))
-  (credentials @database))
+  (-> (test-containers/init {:container     (PostgreSQLContainer. "postgres:15.3")
+                             :exposed-ports [5432]})
+      (test-containers/start!)))
 
-(defn stop-database []
-  (when @database
-    (test-containers/stop! @database)
-    (reset! database nil)))
+(defn stop-database [database]
+  (when database
+    (test-containers/stop! database))
+  nil)
+
+(defrecord DatabaseCredentialsComponent [container]
+  component/Lifecycle
+  (start [component]
+    (let [container (init-database)]
+      (assoc component :database container
+                       :credentials (credentials container))))
+  (stop [component]
+    (-> component
+        (update :database stop-database)
+        (assoc :credentials nil))))
+
+(defn database-credentials-component []
+  (map->DatabaseCredentialsComponent {}))

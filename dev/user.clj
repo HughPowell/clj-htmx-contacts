@@ -1,60 +1,36 @@
 (ns user
-  (:require [aero.core :as aero]
-            [clojure.java.io :as io]
-            [clojure.repl]
+  (:require [clojure.repl]
             [clojure.repl.deps]
+            [com.stuartsierra.component :as component]
+            [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
             [contacts.system.auth :as auth]
             [contacts.system.storage :as storage]
             [database-test-container]
+    ;; Include this to side-step a bug in refresh
+            [idle.multiset.api]
             [malli.generator]
-            [potemkin])
-  (:import (org.eclipse.jetty.server Server)))
+            [potemkin]))
 
 (potemkin/import-vars
   [clojure.repl doc]
-  [clojure.repl.deps sync-deps])
+  [clojure.repl.deps sync-deps]
+  [com.stuartsierra.component.repl reset])
 
-(defn read-config []
-  (-> "config.edn"
-      (io/resource)
-      (aero/read-config)))
-
-(defn init-database []
-  (database-test-container/init-database))
-
-(defn populate-database [database]
-  (storage/contacts-storage database (malli.generator/generate storage/contacts-schema)))
-
-(def stop-database database-test-container/stop-database)
-
-(defn start-server [contacts-storage auth]
-  (app/start-server contacts-storage auth))
-
-(defn stop-server [system]
-  (.stop ^Server system))
-
-(def system (atom nil))
-
-(defn start-app []
-  (let [database (populate-database (init-database))
-        auth (-> (read-config)
-                 (:auth)
-                 (auth/auth0-authorization))]
-    (reset! system {:database database
-                    :server   (start-server database auth)})))
-
-(defn stop-app []
-  (stop-database (:database @system))
-  (stop-server (:server @system))
-  (reset! system nil))
-
-(defn reset-app []
-  (when @system
-    (stop-app))
-  (start-app))
-
+(component.repl/set-init
+  (fn [_]
+    (let [config (app/read-config)]
+      (component/system-map
+        :database-credentials (database-test-container/database-credentials-component)
+        :storage (component/using
+                   (storage/storage-component (malli.generator/generate storage/contacts-schema))
+                   {:credentials :database-credentials})
+        :auth (auth/auth-component config)
+        :app (component/using (app/server-component)
+                              {:contacts-storage :storage
+                               :auth             :auth})))))
 
 (comment
-
+  (sync-deps)
+  (reset)
   )

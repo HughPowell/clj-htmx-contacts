@@ -1,5 +1,6 @@
 (ns contacts.system.storage
-  (:require [contacts.contact.schemas :as schemas]
+  (:require [com.stuartsierra.component :as component]
+            [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]
             [malli.util :as malli.util]
@@ -116,6 +117,16 @@
 
 (defn delete [contacts-storage id]
   (delete* contacts-storage id))
+
+(defrecord StorageComponent [credentials contacts]
+  component/Lifecycle
+  (start [component]
+    (assoc component :storage (contacts-storage (:credentials credentials) contacts)))
+  (stop [component]
+    (assoc component :storage nil)))
+
+(defn storage-component [contacts]
+  (map->StorageComponent {:contacts contacts}))
 
 (comment
   )

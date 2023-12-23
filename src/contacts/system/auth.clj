@@ -4,6 +4,7 @@
             [cheshire.core :as cheshire]
             [clj-http.client :as client]
             [contacts.lib.http :as http]
+            [com.stuartsierra.component :as component]
             [java-time.api :as java-time]
             [liberator.representation :as representation])
   (:import (java.util UUID)))
@@ -109,3 +110,13 @@
              :cookies {:state         (cookie state)
                        :location      (cookie (http/construct-url request))
                        :authorization cookie-reset}}))))))
+
+(defrecord AuthComponent [auth]
+  component/Lifecycle
+  (start [component]
+    (assoc component :auth (auth0-authorization auth)))
+  (stop [component]
+    (assoc component :auth nil)))
+
+(defn auth-component [{:keys [auth]}]
+  (map->AuthComponent {:auth auth}))
