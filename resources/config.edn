@@ -1,12 +1,12 @@
 {:database {:dbtype   "postgresql"
-            :dbname   #or [#env POSTGRES_DB ""]
-            :user     #or [#env POSTGRES_USER ""]
-            :password #or [#env POSTGRES_PASSWORD ""]
-            :host     #or [#env POSTGRES_HOST ""]
-            :port     #long #or [#env POSTGRES_PORT 0]}
- :auth     {:client-id     #or [#env AUTH_CLIENT_ID "6DVu7HeJe6JCyTSMJBp4LCRHmsqlnLfy"]
-            :client-secret #or [#env AUTH_CLIENT_SECRET ""]
-            :login-uri     #or [#env AUTH_LOGIN_URI "https://clj-htmx-contacts.au.auth0.com/authorize"]
-            :authorise-uri #or [#env AUTH_AUTHORISE_URI "https://clj-htmx-contacts.au.auth0.com/oauth/token"]
-            :logout-uri    #or [#env AUTH_LOGOUT_URI "https://clj-htmx-contacts.au.auth0.com/oidc/logout"]
-            :redirect-uri  #or [#env AUTH_REDIRECT_URI "http://localhost:3000/"]}}
+            :dbname   "clj-htmx-contacts"
+            :user     "hugh@hughpowell.net"
+            :password #or [#env CONTACTS_DATABASE_PASSWORD]
+            :host     "ep-delicate-mud-a1ysg1v4.ap-southeast-1.aws.neon.tech"
+            :port     5432}
+ :auth     {:client-id     "6DVu7HeJe6JCyTSMJBp4LCRHmsqlnLfy"
+            :client-secret #or [#env CONTACTS_AUTH_CLIENT_SECRET #vault CONTACTS_AUTH_CLIENT_SECRET]
+            :login-uri     "https://clj-htmx-contacts.au.auth0.com/authorize"
+            :authorise-uri "https://clj-htmx-contacts.au.auth0.com/oauth/token"
+            :logout-uri    "https://clj-htmx-contacts.au.auth0.com/oidc/logout"
+            :redirect-uri  "http://localhost:3000/"}}
