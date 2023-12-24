@@ -110,12 +110,12 @@
                        :location      (cookie (http/construct-url request))
                        :authorization cookie-reset}}))))))
 
-(defrecord AuthComponent [auth]
+(defrecord AuthComponent [config]
   component/Lifecycle
   (start [component]
-    (assoc component :auth (auth0-authorization auth)))
+    (assoc component :auth (auth0-authorization config)))
   (stop [component]
     (assoc component :auth nil)))
 
-(defn auth-component [{:keys [auth]}]
-  (map->AuthComponent {:auth auth}))
+(defn auth-component [config]
+  (map->AuthComponent {:config config}))
