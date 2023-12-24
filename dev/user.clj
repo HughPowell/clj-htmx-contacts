@@ -26,7 +26,7 @@
       (string/trimr out)
       (throw (ex-info (if (seq err) err out) response)))))
 
-(defn load-secrets []
+(defn load-secrets* []
   (sh "vlt" "login")
   (->> (sh "vlt" "secrets" "list")
        (string/split-lines)
@@ -36,6 +36,14 @@
                  [secret-name
                   (sh "vlt" "secrets" "get" "-plaintext" secret-name)])))
        (into {})))
+
+(defn load-secrets []
+  (try
+    (load-secrets*)
+    (catch Exception _
+      (sh "vlt" "logout")
+      (load-secrets*)))
+  )
 
 (defonce secrets (load-secrets))
 
