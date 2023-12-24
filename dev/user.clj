@@ -8,7 +8,8 @@
             [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
             [contacts.system.auth :as auth]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
+            [contacts.system.data-source :as data-source]
             [database-test-container]
     ;; Include this to side-step a bug in refresh
             [idle.multiset.api]
@@ -60,15 +61,15 @@
                                 (database-test-container/database-credentials-component)
                                 {:database :database-container})
         :data-source (component/using
-                       (storage/data-source-component)
+                       (data-source/data-source-component)
                        {:credentials :database-credentials})
-        :storage (component/using
-                   (storage/storage-component (malli.generator/generate storage/contacts-schema))
-                   [:data-source])
+        :contacts-storage (component/using
+                            (contacts-storage/contacts-storage-component (malli.generator/generate contacts-storage/contacts-schema))
+                            [:data-source])
         :auth (auth/auth-component config)
-        :app (component/using (app/server-component)
-                              {:contacts-storage :storage
-                               :auth             :auth})))))
+        :app (component/using
+               (app/server-component)
+               [:contacts-storage :auth])))))
 
 (comment
   (sync-deps)

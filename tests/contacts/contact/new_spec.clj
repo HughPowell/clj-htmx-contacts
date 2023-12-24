@@ -6,7 +6,7 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
             [malli.core :as malli]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
@@ -24,7 +24,7 @@
     (is (empty? inputs-with-values))))
 
 (deftest getting-a-new-contact-form-provides-an-empty-form
-  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 request (request/generator sut-path)]
     (let [response (-> contacts
                        (test-system/construct-handler)
@@ -42,7 +42,7 @@
            (set (conj contacts contact)))))
 
 (deftest adding-new-contact-adds-contact-to-contacts-list
-  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 contact (malli.generator/generator sut/schema)
                 save-contact-request (request/generator sut-path
                                                         {:request-method :post
@@ -82,7 +82,7 @@
     (is (every? nil? (vals (apply dissoc id->error error-ids))))))
 
 (deftest adding-invalid-contact-returns-to-editing-screen
-  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 invalid-contact (->> [:map
                                       [:first-name :string]
                                       [:last-name :string]

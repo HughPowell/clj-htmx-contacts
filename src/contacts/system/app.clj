@@ -11,7 +11,8 @@
             [clojure.java.io :as io]
             [contacts.lib.page :as page]
             [contacts.lib.request :as request]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
+            [contacts.system.data-source :as data-source]
             [liberator.core :refer [resource]]
             [liberator.representation :as representation]
             [reitit.ring :as ring]
@@ -110,13 +111,12 @@
 
 (defn system-map [config]
   (component/system-map
-    :data-source (storage/data-source-component (:database config))
-    :storage (component/using (storage/storage-component)
-                              [:data-source])
+    :data-source (data-source/data-source-component (:database config))
+    :contacts-storage (component/using (contacts-storage/contacts-storage-component)
+                                       [:data-source])
     :auth (auth/auth-component (:auth config))
     :app (component/using (server-component)
-                          {:contacts-storage :storage
-                           :auth             :auth})))
+                          [:contacts-storage :auth])))
 
 (defn read-config
   ([] (read-config nil))

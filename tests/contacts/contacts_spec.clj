@@ -7,7 +7,7 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
             [idle.multiset.api :as mset]
             [malli.generator :as malli.generator]))
 
@@ -37,7 +37,7 @@
      (mset/multiset contacts)))
 
 (deftest all-contacts-returned-when-no-query
-  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 request (request-generator sut-path)]
     (let [response (-> contacts
                        (test-system/construct-handler)
@@ -65,7 +65,7 @@
                      (set contacts)))))
 
 (deftest contacts-that-match-search-are-rendered
-  (checking "" [contacts (malli.generator/generator storage/contacts-schema)
+  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 string' (if (seq contacts)
                           (generators/one-of
                             [(->> contacts

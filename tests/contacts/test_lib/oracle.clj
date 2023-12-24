@@ -1,14 +1,12 @@
 (ns contacts.test-lib.oracle
-  (:require [contacts.system.auth]
-            [contacts.system.storage])
-  (:import (contacts.system.auth Authorization)
-           (contacts.system.storage ContactsStorage)))
+  (:require [contacts.system.auth :as auth]
+            [contacts.system.contacts-storage :as contacts-storage]))
 
 (defn contacts-storage [contacts]
   (let [store (atom (-> (group-by :id contacts) (update-vals first)))
         next-id (atom 0)]
     (set-validator! store (fn [contacts] (every? (fn [[k {:keys [id]}]] (= k id)) contacts)))
-    (reify ContactsStorage
+    (reify contacts-storage/ContactsStorage
       (retrieve* [_] (set (vals @store)))
       (retrieve* [_ id] (get @store id))
       (create* [this contact]
@@ -30,7 +28,7 @@
         (swap! store dissoc id) this))))
 
 (defn authorization []
-  (reify Authorization
+  (reify auth/Authorization
     (authorized? [_ _] {:authorization-id "test"})
     (handle-unauthorized [_ _])))
 

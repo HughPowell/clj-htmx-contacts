@@ -1,5 +1,5 @@
 (ns contacts.contact.delete
-  (:require [contacts.system.storage :as storage]
+  (:require [contacts.system.contacts-storage :as storage]
             [liberator.core :as liberator]
             [liberator.representation :as representation]))
 

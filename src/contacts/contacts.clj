@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [find])
   (:require [contacts.lib.page :as page]
             [clojure.string :as string]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
             [hiccup.element :as element]
             [hiccup.form :as form]
             [liberator.core :as liberator]))
@@ -59,7 +59,7 @@
 (defn resource [defaults contacts-storage]
   (liberator/resource defaults
                       :handle-ok (fn [{:keys [request] :as ctx}]
-                                   (let [contacts (storage/retrieve contacts-storage)
+                                   (let [contacts (contacts-storage/retrieve contacts-storage)
                                          query (get-in request [:params :query])]
                                      (render
                                        ctx

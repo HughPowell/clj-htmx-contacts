@@ -113,7 +113,7 @@
 (defrecord AuthComponent [config]
   component/Lifecycle
   (start [component]
-    (assoc component :auth (auth0-authorization config)))
+    (assoc component :auth (auth0-authorization (:auth config))))
   (stop [component]
     (assoc component :auth nil)))
 

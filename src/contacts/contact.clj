@@ -1,7 +1,7 @@
 (ns contacts.contact
   (:require [clojure.string :as string]
             [contacts.lib.page :as page]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
             [liberator.core :as liberator]))
 
 ;; Rendering
@@ -24,7 +24,8 @@
   (liberator/resource default
                       :allowed-methods [:get]
                       :exists? (fn [{:keys [request]}]
-                                 (if-let [contact (storage/retrieve contacts-storage (get-in request [:params :id]))]
+                                 (if-let [contact (->> (get-in request [:params :id])
+                                                       (contacts-storage/retrieve contacts-storage))]
                                    [true {:contact contact}]
                                    false))
                       :handle-ok (fn [{:keys [contact] :as ctx}]

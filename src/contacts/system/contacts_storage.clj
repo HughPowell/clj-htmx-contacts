@@ -1,16 +1,13 @@
-(ns contacts.system.storage
-  (:require [clojure.core :as core]
-            [com.stuartsierra.component :as component]
+(ns contacts.system.contacts-storage
+  (:require [com.stuartsierra.component :as component]
             [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]
             [malli.util :as malli.util]
             [next.jdbc :as jdbc]
-            [next.jdbc.connection :as connection]
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers])
-  (:refer-clojure :exclude [update])
-  (:import (com.zaxxer.hikari HikariDataSource)))
+  (:refer-clojure :exclude [update]))
 
 ;; Schemas
 
@@ -120,32 +117,16 @@
 (defn delete [contacts-storage id]
   (delete* contacts-storage id))
 
-(defrecord DataSourceComponent [credentials]
-  component/Lifecycle
-  (start [component]
-    (->> credentials
-         (:credentials)
-         (connection/jdbc-url)
-         (hash-map :jdbcUrl)
-         (connection/->pool HikariDataSource)
-         (assoc component :data-source)))
-  (stop [component]
-    (core/update component :data-source #(when % (.close ^HikariDataSource %)))))
-
-(defn data-source-component
-  ([] (map->DataSourceComponent {}))
-  ([credentials] (map->DataSourceComponent {:credentials {:credentials credentials}})))
-
-(defrecord StorageComponent [data-source contacts]
+(defrecord ContactsStorageComponent [data-source contacts]
   component/Lifecycle
   (start [component]
     (assoc component :storage (contacts-storage (:data-source data-source) contacts)))
   (stop [component]
     (assoc component :storage nil)))
 
-(defn storage-component
-  ([] (storage-component #{}))
-  ([contacts] (map->StorageComponent {:contacts contacts})))
+(defn contacts-storage-component
+  ([] (contacts-storage-component #{}))
+  ([contacts] (map->ContactsStorageComponent {:contacts contacts})))
 
 (comment
   )

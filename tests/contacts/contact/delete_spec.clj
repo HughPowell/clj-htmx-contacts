@@ -5,7 +5,7 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.system.storage :as storage]
+            [contacts.system.contacts-storage :as contacts-storage]
             [malli.generator :as malli.generator]))
 
 (def ^:private contacts-list-path "/contacts")
@@ -22,7 +22,7 @@
       (set (remove (fn [{:keys [id]}] (= contact-id id)) contacts))))
 
 (deftest deleting-contact-deletes-contact-in-contacts-list
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 id (generators/fmap :id (generators/elements contacts))
                 delete-contact-request (request/generator (format sut-path-format id)
                                                           {:request-method :post})
@@ -37,7 +37,7 @@
   (is (= 404 status)))
 
 (deftest deleting-non-existent-contact-fails
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator storage/contacts-schema))
+  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 id (generators/such-that
                      (fn [id]
                        (and (seq id)
