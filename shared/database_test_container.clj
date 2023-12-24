@@ -34,16 +34,23 @@
     (test-containers/stop! database))
   nil)
 
-(defrecord DatabaseCredentialsComponent [container]
+(defrecord DatabaseContainerComponent []
   component/Lifecycle
   (start [component]
     (let [container (init-database)]
-      (assoc component :database container
-                       :credentials (credentials container))))
+      (assoc component :database container)))
   (stop [component]
-    (-> component
-        (update :database stop-database)
-        (assoc :credentials nil))))
+    (update component :database stop-database)))
+
+(defn database-container-component []
+  (map->DatabaseContainerComponent {}))
+
+(defrecord DatabaseCredentialsComponent [database]
+  component/Lifecycle
+  (start [component]
+    (assoc component :credentials (credentials (:database database))))
+  (stop [component]
+    (assoc component :credentials nil)))
 
 (defn database-credentials-component []
   (map->DatabaseCredentialsComponent {}))

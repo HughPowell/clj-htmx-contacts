@@ -110,7 +110,9 @@
 
 (defn system-map [config]
   (component/system-map
-    :storage (storage/storage-component config)
+    :data-source (storage/data-source-component (:database config))
+    :storage (component/using (storage/storage-component config)
+                              [:data-source])
     :auth (auth/auth-component config)
     :app (component/using (server-component)
                           {:contacts-storage :storage

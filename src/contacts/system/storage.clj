@@ -1,13 +1,16 @@
 (ns contacts.system.storage
-  (:require [com.stuartsierra.component :as component]
+  (:require [clojure.core :as core]
+            [com.stuartsierra.component :as component]
             [contacts.contact.schemas :as schemas]
             [malli.core :as malli]
             [malli.error :as malli.error]
             [malli.util :as malli.util]
             [next.jdbc :as jdbc]
+            [next.jdbc.connection :as connection]
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers])
-  (:refer-clojure :exclude [update]))
+  (:refer-clojure :exclude [update])
+  (:import (com.zaxxer.hikari HikariDataSource)))
 
 ;; Schemas
 
@@ -60,40 +63,39 @@
       (sql.helpers/values (seq contacts))
       (sql/format)))
 
-(defn contacts-storage [credentials contacts]
-  (let [data-source (jdbc/get-datasource credentials)]
-    (jdbc/execute! data-source contacts-table)
-    (when (seq contacts)
-      (jdbc/execute! data-source (contacts-insert (validate contacts-schema contacts))))
-    (reify ContactsStorage
-      (retrieve* [_]
-        (let [select-all (-> (sql.helpers/select :*)
-                             (sql.helpers/from :contacts)
-                             (sql/format))]
-          (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
-               (set))))
-      (retrieve* [_ id]
-        (let [select-all (-> (sql.helpers/select :*)
-                             (sql.helpers/from :contacts)
-                             (sql.helpers/where [:= :id id])
-                             (sql/format))]
-          (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
-      (create* [this contact]
-        (jdbc/execute! data-source (contacts-insert [contact]))
-        this)
-      (update* [this contact]
-        (let [update (-> (sql.helpers/update :contacts)
-                         (sql.helpers/set (dissoc contact :id))
-                         (sql.helpers/where [:= :id (:id contact)])
-                         (sql/format))]
-          (jdbc/execute! data-source update))
-        this)
-      (delete* [this id]
-        (let [delete (-> (sql.helpers/delete-from :contacts)
-                         (sql.helpers/where [:= :id id])
-                         (sql/format))]
-          (jdbc/execute! data-source delete))
-        this))))
+(defn contacts-storage [data-source contacts]
+  (jdbc/execute! data-source contacts-table)
+  (when (seq contacts)
+    (jdbc/execute! data-source (contacts-insert (validate contacts-schema contacts))))
+  (reify ContactsStorage
+    (retrieve* [_]
+      (let [select-all (-> (sql.helpers/select :*)
+                           (sql.helpers/from :contacts)
+                           (sql/format))]
+        (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
+             (set))))
+    (retrieve* [_ id]
+      (let [select-all (-> (sql.helpers/select :*)
+                           (sql.helpers/from :contacts)
+                           (sql.helpers/where [:= :id id])
+                           (sql/format))]
+        (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
+    (create* [this contact]
+      (jdbc/execute! data-source (contacts-insert [contact]))
+      this)
+    (update* [this contact]
+      (let [update (-> (sql.helpers/update :contacts)
+                       (sql.helpers/set (dissoc contact :id))
+                       (sql.helpers/where [:= :id (:id contact)])
+                       (sql/format))]
+        (jdbc/execute! data-source update))
+      this)
+    (delete* [this id]
+      (let [delete (-> (sql.helpers/delete-from :contacts)
+                       (sql.helpers/where [:= :id id])
+                       (sql/format))]
+        (jdbc/execute! data-source delete))
+      this)))
 
 (defn retrieve
   ([contacts-storage]
@@ -118,17 +120,32 @@
 (defn delete [contacts-storage id]
   (delete* contacts-storage id))
 
-(defrecord StorageComponent [credentials contacts]
+(defrecord DataSourceComponent [credentials]
   component/Lifecycle
   (start [component]
-    (assoc component :storage (contacts-storage (:credentials credentials) contacts)))
+    (->> credentials
+         (:credentials)
+         (connection/jdbc-url)
+         (hash-map :jdbcUrl)
+         (connection/->pool HikariDataSource)
+         (assoc component :data-source)))
+  (stop [component]
+    (core/update component :data-source #(when % (.close ^HikariDataSource %)))))
+
+(defn data-source-component
+  ([] (map->DataSourceComponent {}))
+  ([credentials] (map->DataSourceComponent {:credentials {:credentials credentials}})))
+
+(defrecord StorageComponent [data-source contacts]
+  component/Lifecycle
+  (start [component]
+    (assoc component :storage (contacts-storage (:data-source data-source) contacts)))
   (stop [component]
     (assoc component :storage nil)))
 
-(defn storage-component [contacts-or-config]
-  (if (map? contacts-or-config)
-    (map->StorageComponent {:credentials {:credentials (:database contacts-or-config)}})
-    (map->StorageComponent {:contacts contacts-or-config})))
+(defn storage-component
+  ([] (storage-component #{}))
+  ([contacts] (map->StorageComponent {:contacts contacts})))
 
 (comment
   )

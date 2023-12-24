@@ -55,10 +55,16 @@
   (fn [_]
     (let [config (app/read-config)]
       (component/system-map
-        :database-credentials (database-test-container/database-credentials-component)
+        :database-container (database-test-container/database-container-component)
+        :database-credentials (component/using
+                                (database-test-container/database-credentials-component)
+                                {:database :database-container})
+        :data-source (component/using
+                       (storage/data-source-component)
+                       {:credentials :database-credentials})
         :storage (component/using
                    (storage/storage-component (malli.generator/generate storage/contacts-schema))
-                   {:credentials :database-credentials})
+                   [:data-source])
         :auth (auth/auth-component config)
         :app (component/using (app/server-component)
                               {:contacts-storage :storage
