@@ -60,10 +60,8 @@
       (sql.helpers/values (seq contacts))
       (sql/format)))
 
-(defn contacts-storage [data-source contacts]
+(defn contacts-storage [data-source]
   (jdbc/execute! data-source contacts-table)
-  (when (seq contacts)
-    (jdbc/execute! data-source (contacts-insert (validate contacts-schema contacts))))
   (reify ContactsStorage
     (retrieve* [_]
       (let [select-all (-> (sql.helpers/select :*)
@@ -117,16 +115,14 @@
 (defn delete [contacts-storage id]
   (delete* contacts-storage id))
 
-(defrecord ContactsStorageComponent [data-source contacts]
+(defrecord ContactsStorageComponent [data-source]
   component/Lifecycle
   (start [component]
-    (assoc component :storage (contacts-storage (:data-source data-source) contacts)))
+    (assoc component :contacts-storage (contacts-storage (:data-source data-source))))
   (stop [component]
-    (assoc component :storage nil)))
+    (assoc component :contacts-storage nil)))
 
-(defn contacts-storage-component
-  ([] (contacts-storage-component #{}))
-  ([contacts] (map->ContactsStorageComponent {:contacts contacts})))
+(defn contacts-storage-component [] (map->ContactsStorageComponent {}))
 
 (comment
   )

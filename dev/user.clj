@@ -4,12 +4,9 @@
             [clojure.repl]
             [clojure.repl.deps]
             [clojure.string :as string]
-            [com.stuartsierra.component :as component]
             [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
-            [contacts.system.auth :as auth]
             [contacts.system.contacts-storage :as contacts-storage]
-            [contacts.system.data-source :as data-source]
             [database-test-container]
     ;; Include this to side-step a bug in refresh
             [idle.multiset.api]
@@ -27,7 +24,7 @@
       (string/trimr out)
       (throw (ex-info (if (seq err) err out) response)))))
 
-(defn load-secrets* []
+(defn load-secrets []
   (sh "vlt" "login")
   (->> (sh "vlt" "secrets" "list")
        (string/split-lines)
@@ -38,42 +35,51 @@
                   (sh "vlt" "secrets" "get" "-plaintext" secret-name)])))
        (into {})))
 
-(defn load-secrets []
+(defn secrets []
   (try
-    (load-secrets*)
+    (load-secrets)
     (catch Exception _
       (sh "vlt" "logout")
-      (load-secrets*)))
-  )
+      (load-secrets))))
 
-(defonce secrets (load-secrets))
+(defn vault-reader [secrets]
+  (defmethod aero/reader 'vault
+    [_opts _tag value]
+    (get secrets (str value))))
 
-(defmethod aero/reader 'vault
-  [_opts _tag value]
-  (get secrets (str value)))
+(defn stop-database [database]
+  (database-test-container/stop-database database))
 
-(component.repl/set-init
-  (fn [_]
-    (let [config (app/read-config)]
-      (component/system-map
-        :database-container (database-test-container/database-container-component)
-        :database-credentials (component/using
-                                (database-test-container/database-credentials-component)
-                                {:database :database-container})
-        :data-source (component/using
-                       (data-source/data-source-component)
-                       {:credentials :database-credentials})
-        :contacts-storage (component/using
-                            (contacts-storage/contacts-storage-component (malli.generator/generate contacts-storage/contacts-schema))
-                            [:data-source])
-        :auth (auth/auth-component config)
-        :app (component/using
-               (app/server-component)
-               [:contacts-storage :auth])))))
+(defn populate-database [system]
+  (run!
+    (fn [contact]
+      (contacts-storage/create
+        (:contacts-storage (:contacts-storage system))
+        contact))
+    (malli.generator/generate contacts-storage/contacts-schema)))
+
+(defn empty-database [database]
+  (database-test-container/truncate-contacts-table database))
+
+(defn init-system [database]
+  (component.repl/set-init
+    (fn [_]
+      (-> (app/read-config)
+          (assoc :database (database-test-container/credentials database))
+          (app/system-map)))))
 
 (comment
   (sync-deps)
   (reset)
 
-  (alter-var-root #'secrets (constantly (load-secrets)))
-  )
+  (do
+    (def database (database-test-container/init-database))
+    (def secrets (secrets))
+    (vault-reader secrets)
+    (init-system database))
+
+  (populate-database component.repl/system)
+  (empty-database database)
+
+  (stop-database)
+)

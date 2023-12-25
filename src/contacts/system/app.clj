@@ -54,9 +54,11 @@
    :handle-not-found      (fn [{:keys [request]}] (representation/ring-response
                                                     {:headers {"Content-Type" "text/html;charset=UTF-8"}
                                                      :body    (could-not-find-it request)}))
-   :handle-exception      (fn [{:keys [request]}] (representation/ring-response
-                                                    {:headers {"Content-Type" "text/html;charset=UTF-8"}
-                                                     :body    (we-messed-up request)}))})
+   :handle-exception      (fn [{:keys [request] :as context}]
+                            (tap> context)
+                            (representation/ring-response
+                              {:headers {"Content-Type" "text/html;charset=UTF-8"}
+                               :body    (we-messed-up request)}))})
 
 (defn router [auth contacts-storage]
   (ring/router [["/" (resource (defaults auth)
@@ -100,7 +102,7 @@
 (defrecord ServerComponent [contacts-storage auth]
   component/Lifecycle
   (start [component]
-    (assoc component :server (start-server (:storage contacts-storage) (:auth auth))))
+    (assoc component :server (start-server (:contacts-storage contacts-storage) (:auth auth))))
   (stop [component]
     (when-let [server (:server component)]
       (.stop ^Server server))
