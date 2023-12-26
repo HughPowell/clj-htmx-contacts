@@ -46,14 +46,14 @@
   (update* [this contact])
   (delete* [this id]))
 
-(def ^:private contacts-table
-  (-> (sql.helpers/create-table :contacts :if-not-exists)
-      (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
-                                 [:first-name :varchar [:not nil]]
-                                 [:last-name :varchar [:not nil]]
-                                 [:phone :varchar [:not nil]]
-                                 [:email :varchar [:not nil]]])
-      (sql/format)))
+(def contacts-table
+  {:up   (-> (sql.helpers/create-table :contacts :if-not-exists)
+             (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
+                                        [:first-name :varchar [:not nil]]
+                                        [:last-name :varchar [:not nil]]
+                                        [:phone :varchar [:not nil]]
+                                        [:email :varchar [:not nil]]]))
+   :down (sql.helpers/drop-table :contacts)})
 
 (defn- contacts-insert [contacts]
   (-> (sql.helpers/insert-into :contacts)
@@ -61,7 +61,6 @@
       (sql/format)))
 
 (defn contacts-storage [data-source]
-  (jdbc/execute! data-source contacts-table)
   (reify ContactsStorage
     (retrieve* [_]
       (let [select-all (-> (sql.helpers/select :*)

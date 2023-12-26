@@ -1,85 +1,56 @@
 (ns user
-  (:require [aero.core :as aero]
-            [clojure.java.shell :as shell]
-            [clojure.repl]
+  (:require [clojure.repl]
             [clojure.repl.deps]
-            [clojure.string :as string]
             [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
             [contacts.system.contacts-storage :as contacts-storage]
-            [database-test-container]
+            [contacts.system.data-migrations :as data-migrations]
+            [database]
     ;; Include this to side-step a bug in refresh
             [idle.multiset.api]
             [malli.generator]
-            [potemkin]))
+            [potemkin]
+            [ragtime.repl]
+            [ragtime.next-jdbc]
+            [secrets]))
 
 (potemkin/import-vars
   [clojure.repl doc]
   [clojure.repl.deps sync-deps]
-  [com.stuartsierra.component.repl reset])
-
-(defn sh [& args]
-  (let [{:keys [exit out err] :as response} (apply shell/sh args)]
-    (if (zero? exit)
-      (string/trimr out)
-      (throw (ex-info (if (seq err) err out) response)))))
-
-(defn load-secrets []
-  (sh "vlt" "login")
-  (->> (sh "vlt" "secrets" "list")
-       (string/split-lines)
-       (rest)
-       (pmap (fn [line]
-               (let [secret-name (re-find #"^\w+" line)]
-                 [secret-name
-                  (sh "vlt" "secrets" "get" "-plaintext" secret-name)])))
-       (into {})))
-
-(defn secrets []
-  (try
-    (load-secrets)
-    (catch Exception _
-      (sh "vlt" "logout")
-      (load-secrets))))
-
-(defn vault-reader [secrets]
-  (defmethod aero/reader 'vault
-    [_opts _tag value]
-    (get secrets (str value))))
-
-(defn stop-database [database]
-  (database-test-container/stop-database database))
+  [com.stuartsierra.component.repl reset system])
 
 (defn populate-database [system]
+  (ragtime.repl/migrate {:datastore  (-> system
+                                         (get-in [:data-source :data-source])
+                                         (ragtime.next-jdbc/sql-database))
+                         :migrations data-migrations/data-store-migrations})
   (run!
     (fn [contact]
-      (contacts-storage/create
-        (:contacts-storage (:contacts-storage system))
-        contact))
+      (-> system
+          (get-in [:contacts-storage :contacts-storage])
+          (contacts-storage/create contact)))
     (malli.generator/generate contacts-storage/contacts-schema)))
 
-(defn empty-database [database]
-  (database-test-container/truncate-contacts-table database))
+(defn empty-database [system]
+  (-> system
+      (get-in [:data-source :data-source])
+      (database/truncate-contacts-table)))
 
-(defn init-system [database]
-  (component.repl/set-init
-    (fn [_]
-      (-> (app/read-config)
-          (assoc :database (database-test-container/credentials database))
-          (app/system-map)))))
+(component.repl/set-init
+  (fn [_]
+    (-> (app/read-config)
+        (assoc :database database/credentials)
+        (app/system-map))))
+
+(defn hard-reset []
+  (database/reset)
+  (secrets/reset)
+  (reset))
 
 (comment
-  (sync-deps)
+  ;; Make sure to run populate database before accessing the system for the first time
   (reset)
+  (populate-database system)
 
-  (do
-    (def database (database-test-container/init-database))
-    (def secrets (secrets))
-    (vault-reader secrets)
-    (init-system database))
-
-  (populate-database component.repl/system)
-  (empty-database database)
-
-  (stop-database)
-)
+  (empty-database system)
+  )
