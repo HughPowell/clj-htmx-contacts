@@ -32,12 +32,6 @@
    [:set existing-contact-schema]
    [:fn ids-are-unique?]])
 
-(defn- validate [schema data]
-  (when-not (malli/validate schema data)
-    (let [explanation (malli/explain schema data)]
-      (throw (ex-info (str (malli.error/humanize explanation)) explanation))))
-  data)
-
 ;; Persistence
 
 (defprotocol ContactsStorage
@@ -95,20 +89,20 @@
   ([contacts-storage]
    (->> contacts-storage
         (retrieve*)
-        (validate contacts-schema)))
+        (schemas/validate contacts-schema)))
   ([contacts-storage id]
    (->> id
         (retrieve* contacts-storage)
-        (validate [:maybe existing-contact-schema]))))
+        (schemas/validate [:maybe existing-contact-schema]))))
 
 (defn create [contacts-storage contact]
   (->> contact
-       (validate new-contact-schema)
+       (schemas/validate new-contact-schema)
        (create* contacts-storage)))
 
 (defn update [contacts-storage contact]
   (->> contact
-       (validate existing-contact-schema)
+       (schemas/validate existing-contact-schema)
        (update* contacts-storage)))
 
 (defn delete [contacts-storage id]
