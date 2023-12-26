@@ -1,5 +1,6 @@
 (ns contacts.system.users-storage
   (:require [contacts.contact.schemas :as schemas]
+            [com.stuartsierra.component :as component]
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers]
             [next.jdbc :as jdbc]))
@@ -42,6 +43,15 @@
 
 (defn ->user [users-storage authorisation-id]
   (schemas/validate user-schema (->user* users-storage authorisation-id)))
+
+(defrecord UsersStorageComponent [data-source]
+  component/Lifecycle
+  (start [component]
+    (assoc component :users-storage (users-storage (:data-source data-source))))
+  (stop [component]
+    (assoc component :users-storage nil)))
+
+(defn users-storage-component [] (map->UsersStorageComponent {}))
 
 (comment
 

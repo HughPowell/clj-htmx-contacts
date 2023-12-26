@@ -13,6 +13,7 @@
             [contacts.lib.request :as request]
             [contacts.system.contacts-storage :as contacts-storage]
             [contacts.system.data-source :as data-source]
+            [contacts.system.users-storage :as users-storage]
             [liberator.core :refer [resource]]
             [liberator.representation :as representation]
             [reitit.ring :as ring]
@@ -116,7 +117,10 @@
     :data-source (data-source/data-source-component (:database config))
     :contacts-storage (component/using (contacts-storage/contacts-storage-component)
                                        [:data-source])
-    :auth (auth/auth-component (:auth config))
+    :users-storage (component/using (users-storage/users-storage-component)
+                                    [:data-source])
+    :auth (component/using (auth/auth-component (:auth config))
+                           [:users-storage])
     :app (component/using (server-component)
                           [:contacts-storage :auth])))
 

@@ -5,6 +5,7 @@
             [clj-http.client :as client]
             [contacts.lib.http :as http]
             [com.stuartsierra.component :as component]
+            [contacts.system.users-storage :as users-storage]
             [java-time.api :as java-time]
             [liberator.representation :as representation]))
 
@@ -34,7 +35,7 @@
             [expires id-token])
           (catch Exception _))))))
 
-(defn- authorise-cookie [config request]
+(defn- cookie->subject-id [config request]
   (try
     (-> request
         (get-in [:cookies "authorization" :value])
@@ -65,7 +66,7 @@
 (defn- authorization-cookie? [request]
   (get-in request [:cookies "authorization" :value]))
 
-(defn auth0-authorization [config]
+(defn auth0-authorization [users-storage config]
   (reify Authorization
     (authorized? [_ {:keys [request]}]
       (cond
@@ -77,8 +78,8 @@
           [false {:login-completed? false}])
 
         (authorization-cookie? request)
-        (if-let [authorization-id (authorise-cookie config request)]
-          [true {:authorization-id authorization-id
+        (if-let [subject-id (cookie->subject-id config request)]
+          [true {:user             (users-storage/->user users-storage subject-id)
                  :logout-uri       (http/construct-url
                                      (:logout-uri config)
                                      {:post-logout-redirect-uri (:redirect-uri config)
@@ -110,10 +111,10 @@
                        :location      (cookie (http/construct-url request))
                        :authorization cookie-reset}}))))))
 
-(defrecord AuthComponent [config]
+(defrecord AuthComponent [users-storage config]
   component/Lifecycle
   (start [component]
-    (assoc component :auth (auth0-authorization config)))
+    (assoc component :auth (auth0-authorization (:users-storage users-storage) config)))
   (stop [component]
     (assoc component :auth nil)))
 
