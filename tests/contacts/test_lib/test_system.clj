@@ -3,7 +3,7 @@
             [camel-snake-kebab.extras :as camel-snake-kebab.extras]
             [contacts.system.app :as app]
             [contacts.test-lib.oracle :as oracle]
-            [contacts.storage-oracle]
+            [contacts.contacts-storage-oracle]
             [net.cgrand.enlive-html :as enlive])
   (:import (java.io StringReader)))
 

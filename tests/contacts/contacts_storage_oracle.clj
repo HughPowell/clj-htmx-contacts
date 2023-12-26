@@ -1,32 +1,15 @@
-(ns contacts.storage-oracle
+(ns contacts.contacts-storage-oracle
   (:require [clojure.set :as set]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.test.check.generators :as generators]
-            [database-test-container]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.new :as new]
+            [contacts.test-lib.database :as database]
             [contacts.test-lib.oracle :as oracle]
             [contacts.system.contacts-storage :as contacts-storage]
-            [malli.generator :as malli.generator]
-            [next.jdbc :as jdbc]))
+            [malli.generator :as malli.generator]))
 
-(def ^:private database (atom nil))
-
-(defn postgres-fixture [test]
-  (reset! database (database-test-container/init-database))
-  (test)
-  (swap! database database-test-container/stop-database))
-
-(use-fixtures :once postgres-fixture)
-
-(defn- get-connection []
-  (jdbc/get-connection (database-test-container/credentials @database)))
-
-(defn- reset-database []
-  (if @database
-    (database-test-container/truncate-all-tables (get-connection))
-    (reset! database (database-test-container/init-database)))
-  (get-connection))
+(use-fixtures :once database/postgres-fixture)
 
 (defn- populate-contacts-storage [connection contacts]
   (let [contacts-storage (contacts-storage/contacts-storage connection)]
@@ -37,7 +20,7 @@
 
 (deftest mass-contacts-storage-matches-oracle
   (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)]
-    (with-open [connection (reset-database)]
+    (with-open [connection (database/reset)]
       (is (= (contacts-storage/retrieve (populate-contacts-storage connection contacts))
              (contacts-storage/retrieve (oracle/contacts-storage contacts)))))))
 
@@ -56,7 +39,7 @@
 (deftest storing-new-contact-matches-oracle
   (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 contact (malli.generator/generator new/schema)]
-    (with-open [connection (reset-database)]
+    (with-open [connection (database/reset)]
       (let [sut-results (-> connection
                             (populate-contacts-storage contacts)
                             (persist-contact contact))
@@ -71,7 +54,7 @@
                            seq
                            (malli.generator/generator contacts-storage/contacts-schema))
                 id (generators/elements (map :id contacts))]
-    (with-open [connection (reset-database)]
+    (with-open [connection (database/reset)]
       (let [sut-storage (populate-contacts-storage connection contacts)
             oracle-storage (oracle/contacts-storage contacts)]
         (is (= (contacts-storage/retrieve sut-storage id)
@@ -91,7 +74,7 @@
                 updated-contact (generators/fmap
                                   #(assoc % :id id)
                                   (malli.generator/generator contacts-storage/existing-contact-schema))]
-    (with-open [connection (reset-database)]
+    (with-open [connection (database/reset)]
       (let [sut-storage (populate-contacts-storage connection contacts)
             oracle-storage (oracle/contacts-storage contacts)]
         (is (= (update-contact sut-storage updated-contact)
@@ -106,7 +89,7 @@
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 contact (generators/elements contacts)
                 id (generators/return (:id contact))]
-    (with-open [connection (reset-database)]
+    (with-open [connection (database/reset)]
       (let [sut-results (delete-contact (populate-contacts-storage connection contacts) id)
             oracle-results (delete-contact (oracle/contacts-storage contacts) id)]
         (is (= sut-results oracle-results))))))
