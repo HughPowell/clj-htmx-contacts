@@ -24,7 +24,7 @@
 
 (defn- reset-database []
   (if @database
-    (database-test-container/truncate-contacts-table (get-connection))
+    (database-test-container/truncate-all-tables (get-connection))
     (reset! database (database-test-container/init-database)))
   (get-connection))
 

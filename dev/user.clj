@@ -20,10 +20,6 @@
   [com.stuartsierra.component.repl reset system])
 
 (defn populate-database [system]
-  (ragtime.repl/migrate {:datastore  (-> system
-                                         (get-in [:data-source :data-source])
-                                         (ragtime.next-jdbc/sql-database))
-                         :migrations data-migrations/data-store-migrations})
   (run!
     (fn [contact]
       (-> system
@@ -34,7 +30,7 @@
 (defn empty-database [system]
   (-> system
       (get-in [:data-source :data-source])
-      (database/truncate-contacts-table)))
+      (database/truncate-all-tables)))
 
 (component.repl/set-init
   (fn [_]
@@ -48,9 +44,10 @@
   (reset))
 
 (comment
-  ;; Make sure to run populate database before accessing the system for the first time
   (reset)
   (populate-database system)
 
+  (hard-reset)
   (empty-database system)
+  (database/stop)
   )

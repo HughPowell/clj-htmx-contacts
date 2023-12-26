@@ -1,5 +1,6 @@
 (ns contacts.system.data-migrations
   (:require [contacts.system.contacts-storage :as contacts-storage]
+            [contacts.system.users-storage :as users-storage]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]
             [ragtime.protocols]))
@@ -16,7 +17,8 @@
     (run-down! [_ data-source] (execute-sql data-source down))))
 
 (def ^:private data-store-migrations*
-  [(merge {:id "Create contacts table"} contacts-storage/contacts-table)])
+  [(merge {:id "Create contacts table"} contacts-storage/contacts-table)
+   (merge {:id "Create users table"} users-storage/users-table)])
 
 (def data-store-migrations
   (map-indexed

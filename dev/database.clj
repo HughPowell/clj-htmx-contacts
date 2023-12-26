@@ -12,4 +12,4 @@
   (stop)
   (alter-var-root #'database (fn [_] (database-test-container/init-database))))
 
-(def truncate-contacts-table database-test-container/truncate-contacts-table)
+(def truncate-all-tables database-test-container/truncate-all-tables)
