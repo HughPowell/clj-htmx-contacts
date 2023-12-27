@@ -18,7 +18,9 @@
 
 (def ^:private data-store-migrations*
   [(merge {:id "Create contacts table"} contacts-storage/contacts-table)
-   (merge {:id "Create users table"} users-storage/users-table)])
+   (merge {:id "Create users table"} users-storage/users-table)
+   (merge {:id "Create user-id column in contacts table"} contacts-storage/user-id-column)
+   (merge {:id "Link contacts and users user-ids"} contacts-storage/user-id-column-references-users-table)])
 
 (def data-store-migrations
   (map-indexed

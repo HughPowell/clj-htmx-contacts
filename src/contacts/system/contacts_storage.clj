@@ -1,8 +1,7 @@
 (ns contacts.system.contacts-storage
-  (:require [com.stuartsierra.component :as component]
+  (:require [clojure.string :as string]
+            [com.stuartsierra.component :as component]
             [contacts.contact.schemas :as schemas]
-            [malli.core :as malli]
-            [malli.error :as malli.error]
             [malli.util :as malli.util]
             [next.jdbc :as jdbc]
             [honey.sql :as sql]
@@ -48,6 +47,23 @@
                                         [:phone :varchar [:not nil]]
                                         [:email :varchar [:not nil]]]))
    :down (sql.helpers/drop-table :contacts)})
+
+(def user-id-column
+  {:up   (-> (sql.helpers/alter-table :contacts)
+             (sql.helpers/add-column :user-id :varchar))
+   :down (-> (sql.helpers/alter-table :contacts)
+             (sql.helpers/drop-column :user-id))})
+
+(def user-id-column-references-users-table
+  (let [constraint-name "user_id_foreign_key"]
+    {:up   {:alter-table :contacts
+            :raw         (string/join " "
+                                      [(format "ADD CONSTRAINT %s" constraint-name)
+                                       "FOREIGN KEY (user_id)"
+                                       "REFERENCES users(user_id)"
+                                       "ON DELETE CASCADE"])}
+     :down {:alter-table :contacts
+            :raw         (format "DROP CONSTRAINT %s" constraint-name)}}))
 
 (defn- contacts-insert [contacts]
   (-> (sql.helpers/insert-into :contacts)

@@ -5,8 +5,9 @@
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers]
             [next.jdbc :as jdbc]
+            [ragtime.core :as ragtime]
             [ragtime.next-jdbc]
-            [ragtime.repl])
+            [ragtime.reporter :as reporter])
   (:import (org.testcontainers.containers PostgreSQLContainer)))
 
 (defn credentials [database-container]
@@ -21,15 +22,17 @@
   (when data-source
     (run!
       (fn [sql] (jdbc/execute! data-source (sql/format sql)))
-      [(sql.helpers/truncate :contacts)
-       (sql.helpers/truncate :users)])))
+      [(sql.helpers/truncate :users)
+       (sql.helpers/truncate :contacts)])))
 
 (defn init-database []
   (let [database (-> (test-containers/init {:container     (PostgreSQLContainer. "postgres:15.3")
                                             :exposed-ports [5432]})
                      (test-containers/start!))]
-    (ragtime.repl/migrate {:datastore  (ragtime.next-jdbc/sql-database (credentials database))
-                           :migrations data-migrations/data-store-migrations})
+    (ragtime/migrate-all (ragtime.next-jdbc/sql-database (credentials database))
+                         {}
+                         data-migrations/data-store-migrations
+                         {:reporter reporter/print})
     database))
 
 (defn stop-database [database]
