@@ -42,7 +42,7 @@
                 (jdbc/execute-one! data-source user-id-query jdbc/unqualified-snake-kebab-opts)))))))))
 
 (defn ->user [users-storage authorisation-id]
-  (schemas/validate user-schema (->user* users-storage authorisation-id)))
+  (schemas/coerce user-schema (->user* users-storage authorisation-id)))
 
 (defrecord UsersStorageComponent [data-source]
   component/Lifecycle

@@ -105,20 +105,20 @@
   ([contacts-storage]
    (->> contacts-storage
         (retrieve*)
-        (schemas/validate contacts-schema)))
+        (schemas/coerce contacts-schema)))
   ([contacts-storage id]
    (->> id
         (retrieve* contacts-storage)
-        (schemas/validate [:maybe existing-contact-schema]))))
+        (schemas/coerce [:maybe existing-contact-schema]))))
 
 (defn create [contacts-storage contact]
   (->> contact
-       (schemas/validate new-contact-schema)
+       (schemas/coerce new-contact-schema)
        (create* contacts-storage)))
 
 (defn update [contacts-storage contact]
   (->> contact
-       (schemas/validate existing-contact-schema)
+       (schemas/coerce existing-contact-schema)
        (update* contacts-storage)))
 
 (defn delete [contacts-storage id]

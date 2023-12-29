@@ -3,6 +3,7 @@
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
+            [contacts.test-lib.contact-list :as contact-list]
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
             [contacts.system.contacts-storage :as contacts-storage]
@@ -28,7 +29,8 @@
 
 (deftest retrieving-a-contact-displays-it
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                contact (generators/elements contacts)
+                handler (generators/return (test-system/construct-handler contacts))
+                contact (contact-list/nth-contact-generator handler)
                 request (request/generator (format sut-path-format (:id contact)))]
     (let [response (-> contacts
                        (test-system/construct-handler)
@@ -42,11 +44,13 @@
 
 (deftest non-existent-contact-not-found
   (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
+                handler (generators/return (test-system/construct-handler contacts))
+                existing-contacts (contact-list/existing-contacts-generator handler)
                 id (generators/such-that
                      (fn [id]
                        (and
                          (seq id)
-                         (not (contains? (set (map :id contacts)) id))))
+                         (not (contains? (set (map :id existing-contacts)) id))))
                      generators/string-alphanumeric)
                 request (request/generator (format sut-path-format id))]
     (let [response (-> contacts

@@ -3,101 +3,154 @@
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.contact.new :as new]
+            [contacts.test-lib.contact-list :as contact-list]
             [contacts.test-lib.database :as database]
             [contacts.test-lib.oracle :as oracle]
-            [contacts.system.contacts-storage :as contacts-storage]
-            [malli.generator :as malli.generator]))
+            [contacts.system.contacts-storage :as contacts-storage]))
 
 (use-fixtures :once database/postgres-fixture)
 
-(defn- populate-contacts-storage [connection contacts]
-  (let [contacts-storage (contacts-storage/contacts-storage connection)]
-    (run!
-      (fn [contact] (contacts-storage/create contacts-storage contact))
-      contacts)
-    contacts-storage))
+(defn index-%-per-action-generator [actions]
+  (->> actions
+       (filter #{:retrieve :update :delete})
+       (count)
+       (generators/vector
+         (generators/such-that
+           #(not= 1.0 %)
+           (generators/double* {:NaN? false :min 0 :max 1})))))
 
-(deftest mass-contacts-storage-matches-oracle
-  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)]
+(defn- create-contact [sut oracle contact]
+  (contacts-storage/create sut contact)
+  (contacts-storage/create oracle contact))
+
+(defn- find-equivalent-contact [storage contact]
+  (->> storage
+       (contacts-storage/retrieve)
+       (filter (fn [contact']
+                 (= (dissoc contact' :id)
+                    (dissoc contact :id))))
+       (first)))
+
+(defn- rand-% [s index-%]
+  (when-let [seq-s (seq s)]
+    (nth seq-s (* index-% (count seq-s)))))
+
+(defn- retrieve-contact [sut oracle index-%]
+  (when-let [oracle-contact-to-retrieve (rand-% (contacts-storage/retrieve oracle) index-%)]
+    (let [sut-contact-to-retrieve (find-equivalent-contact sut oracle-contact-to-retrieve)]
+      (is (=
+            (dissoc (contacts-storage/retrieve oracle (:id oracle-contact-to-retrieve)) :id)
+            (dissoc (contacts-storage/retrieve sut (:id sut-contact-to-retrieve)) :id))))))
+
+(defn- update-contact [sut oracle update index-%]
+  (when-let [oracle-contact-to-update (rand-% (contacts-storage/retrieve oracle) index-%)]
+    (contacts-storage/update oracle (merge oracle-contact-to-update update))
+    (let [sut-contact-to-update (find-equivalent-contact sut oracle-contact-to-update)]
+      (contacts-storage/update sut (merge sut-contact-to-update update)))))
+
+(defn- delete-contact [sut oracle index-%]
+  (when-let [oracle-contact-to-delete (rand-% (contacts-storage/retrieve oracle) index-%)]
+    (contacts-storage/delete oracle (:id oracle-contact-to-delete))
+    (let [sut-contact-to-delete (find-equivalent-contact sut oracle-contact-to-delete)]
+      (contacts-storage/delete sut (:id sut-contact-to-delete)))))
+
+(deftest ensure-contacts-storage-matches-oracle
+  (checking "" [actions (->> #{:create :retrieve :update :delete}
+                             (generators/elements)
+                             (generators/vector)
+                             (generators/such-that seq))
+                initial-contacts (contact-list/new-contacts-generator)
+                new-contacts (contact-list/new-contacts-generator (count (filter #{:create} actions)))
+                contact-updates (contact-list/new-contacts-generator (count (filter #{:update} actions)))
+                index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
-      (is (= (contacts-storage/retrieve (populate-contacts-storage connection contacts))
-             (contacts-storage/retrieve (oracle/contacts-storage contacts)))))))
+      (let [sut (contacts-storage/contacts-storage connection)
+            oracle (oracle/contacts-storage)]
+        (run! (fn [contact] (create-contact sut oracle contact)) initial-contacts)
+        (loop [actions actions
+               new-contacts new-contacts
+               contact-updates contact-updates
+               index-%s index-%s]
+          (when (seq actions)
+            (let [action (first actions)
+                  index-% (first index-%s)]
+              (case action
+                :create (create-contact sut oracle (first new-contacts))
+                :retrieve (retrieve-contact sut oracle index-%)
+                :update (update-contact sut oracle (first contact-updates) index-%)
+                :delete (delete-contact sut oracle index-%))
 
-(defn- ids-are-unique? [contacts]
-  (= (count contacts)
-     (count (set (map :id contacts)))))
+              (is (= (contact-list/strip-ids (contacts-storage/retrieve oracle))
+                     (contact-list/strip-ids (contacts-storage/retrieve sut))))
 
-(defn- no-contacts-have-changed [original-contacts current-contacts]
-  (= 1 (count (set/difference current-contacts original-contacts))))
+              (recur
+                (rest actions)
+                (if (= action :create) (rest new-contacts) new-contacts)
+                (if (= action :update) (rest contact-updates) contact-updates)
+                (if (#{:retrieve :update :delete} action) (rest index-%s) index-%s)))))))))
 
-(defn- persist-contact [storage contact]
-  (-> storage
-      (contacts-storage/create contact)
-      (contacts-storage/retrieve)))
+(defn- ensure-stable-ids-on-create [sut contact]
+  (let [original-ids (set (map :id (contacts-storage/retrieve sut)))]
+    (contacts-storage/create sut contact)
+    (let [latest-ids (set (map :id (contacts-storage/retrieve sut)))]
+      (is (= 1 (count (set/difference latest-ids original-ids)))
+          (format "Latest IDs: %s; Original IDs: %s" (str latest-ids) (str original-ids))))))
 
-(deftest storing-new-contact-matches-oracle
-  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
-                contact (malli.generator/generator new/schema)]
+(defn- ensure-stable-ids-on-update [sut update index-%]
+  (when-let [original-contacts (seq (contacts-storage/retrieve sut))]
+    (let [contact-to-update (rand-% original-contacts index-%)]
+      (contacts-storage/update sut (merge contact-to-update update))
+      (is (= (set (map :id original-contacts))
+             (set (map :id (contacts-storage/retrieve sut))))))))
+
+(defn- ensure-stable-ids-on-delete [sut index-%]
+  (when-let [original-contacts (seq (contacts-storage/retrieve sut))]
+    (let [contact-to-delete (rand-% original-contacts index-%)]
+      (contacts-storage/delete sut (:id contact-to-delete))
+      (is (= #{(:id contact-to-delete)}
+             (set/difference (set (map :id original-contacts))
+                             (set (map :id (contacts-storage/retrieve sut)))))))))
+
+(defn- ensure-ids-are-unique [sut]
+  (let [all-contact-ids (map :id (contacts-storage/retrieve sut))]
+    (is (= (sort (set all-contact-ids))
+           (sort all-contact-ids)))))
+
+(deftest ensure-ids-remain-stable
+  (checking "" [actions (->> #{:create :update :delete}
+                             (generators/elements)
+                             (generators/vector)
+                             (generators/such-that seq))
+                initial-contacts (contact-list/new-contacts-generator)
+                new-contacts (contact-list/new-contacts-generator (count (filter #{:create} actions)))
+                contact-updates (contact-list/new-contacts-generator (count (filter #{:update} actions)))
+                index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
-      (let [sut-results (-> connection
-                            (populate-contacts-storage contacts)
-                            (persist-contact contact))
-            oracle-results (persist-contact (oracle/contacts-storage contacts) contact)]
-        (is (= (set (map #(dissoc % :id) sut-results))
-               (set (map #(dissoc % :id) oracle-results))))
-        (is (no-contacts-have-changed contacts sut-results))
-        (is (ids-are-unique? sut-results))))))
+      (let [sut (contacts-storage/contacts-storage connection)]
+        (run! (fn [contact] (contacts-storage/create sut contact)) initial-contacts)
+        (loop [actions actions
+               new-contacts new-contacts
+               contact-updates contact-updates
+               index-%s index-%s]
+          (when (seq actions)
 
-(deftest retrieving-contact-matches-oracle
-  (checking "" [contacts (generators/such-that
-                           seq
-                           (malli.generator/generator contacts-storage/contacts-schema))
-                id (generators/elements (map :id contacts))]
-    (with-open [connection (database/reset)]
-      (let [sut-storage (populate-contacts-storage connection contacts)
-            oracle-storage (oracle/contacts-storage contacts)]
-        (is (= (contacts-storage/retrieve sut-storage id)
-               (contacts-storage/retrieve oracle-storage id)))
-        (is (= (contacts-storage/retrieve sut-storage)
-               (contacts-storage/retrieve oracle-storage)))))))
+            (let [action (first actions)
+                  index-% (first index-%s)]
+              (case action
+                :create (ensure-stable-ids-on-create sut (first new-contacts))
+                :update (ensure-stable-ids-on-update sut (first contact-updates) index-%)
+                :delete (ensure-stable-ids-on-delete sut index-%))
 
-(defn- update-contact [storage contact]
-  (-> storage
-      (contacts-storage/update contact)
-      (contacts-storage/retrieve)))
+              (ensure-ids-are-unique sut)
 
-(deftest persisting-update-to-contact-matches-oracle
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                contact (generators/elements contacts)
-                id (generators/return (:id contact))
-                updated-contact (generators/fmap
-                                  #(assoc % :id id)
-                                  (malli.generator/generator contacts-storage/existing-contact-schema))]
-    (with-open [connection (database/reset)]
-      (let [sut-storage (populate-contacts-storage connection contacts)
-            oracle-storage (oracle/contacts-storage contacts)]
-        (is (= (update-contact sut-storage updated-contact)
-               (update-contact oracle-storage updated-contact)))))))
+              (recur
+                (rest actions)
+                (if (= action :create) (rest new-contacts) new-contacts)
+                (if (= action :update) (rest contact-updates) contact-updates)
+                (if (#{:update :delete} action) (rest index-%s) index-%s)))))))))
 
-(defn- delete-contact [storage contact-id]
-  (-> storage
-      (contacts-storage/delete contact-id)
-      (contacts-storage/retrieve)))
-
-(deftest deleting-contact-matches-oracle
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                contact (generators/elements contacts)
-                id (generators/return (:id contact))]
-    (with-open [connection (database/reset)]
-      (let [sut-results (delete-contact (populate-contacts-storage connection contacts) id)
-            oracle-results (delete-contact (oracle/contacts-storage contacts) id)]
-        (is (= sut-results oracle-results))))))
 
 (comment
-  (mass-contacts-storage-matches-oracle)
-  (storing-new-contact-matches-oracle)
-  (retrieving-contact-matches-oracle)
-  (persisting-update-to-contact-matches-oracle)
-  (deleting-contact-matches-oracle)
+  (ensure-contacts-storage-matches-oracle)
+  (ensure-ids-remain-stable)
   )

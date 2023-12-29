@@ -1,6 +1,7 @@
 (ns contacts.contact.schemas
   (:require [malli.core :as malli]
-            [malli.error]))
+            [malli.error]
+            [malli.transform]))
 
 (def id [:id [:string {:min 1}]])
 
@@ -16,8 +17,5 @@
                     [:string {:error/message "should be blank" :max 0}]
                     [:re {:error/message "should be a valid email address"} #"[a-z\.\+]+@[a-z\.]+"]]])
 
-(defn validate [schema data]
-  (when-not (malli/validate schema data)
-    (let [explanation (malli/explain schema data)]
-      (throw (ex-info (str (malli.error/humanize explanation)) explanation))))
-  data)
+(defn coerce [schema data]
+  (malli/coerce schema data malli.transform/strip-extra-keys-transformer))

@@ -22,8 +22,7 @@
   (when data-source
     (run!
       (fn [sql] (jdbc/execute! data-source (sql/format sql)))
-      [(sql.helpers/truncate :users)
-       (sql.helpers/truncate :contacts)])))
+      [{:raw "TRUNCATE users, contacts RESTART IDENTITY"}])))
 
 (defn init-database []
   (let [database (-> (test-containers/init {:container     (PostgreSQLContainer. "postgres:15.3")
