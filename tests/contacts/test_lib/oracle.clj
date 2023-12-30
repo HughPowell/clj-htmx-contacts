@@ -13,7 +13,12 @@
         (loop [proposed-id (str (swap! next-id inc))]
           (when-not
             (try
-              (swap! store (fn [contacts] (assoc contacts proposed-id (assoc contact :id proposed-id))))
+              (swap! store (fn [contacts]
+                             (when (contains? contacts proposed-id)
+                               (throw (ex-info (format "%s already exists as a key" proposed-id)
+                                               {:key  proposed-id
+                                                :keys (keys contacts)})))
+                             (assoc contacts proposed-id (assoc contact :id proposed-id))))
               (catch Exception _))
             (recur (str (swap! next-id inc)))))
         this)
