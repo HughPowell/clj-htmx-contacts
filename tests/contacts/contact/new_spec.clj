@@ -12,7 +12,7 @@
             [net.cgrand.enlive-html :as enlive]))
 
 (def ^:private sut-path "/contacts/new")
-(def ^:private contact-list-path "/contacts")
+(def ^:private contacts-list-path "/contacts")
 
 (defn- new-contact-form-is-returned-ok? [{:keys [status]}]
   (is (= 200 status)))
@@ -32,9 +32,9 @@
       (and (is (new-contact-form-is-returned-ok? response))
            (is (new-form-is-empty? response))))))
 
-(defn- saving-contact-redirects-to-contact-list? [{:keys [status headers]}]
+(defn- saving-contact-redirects-to-contacts-list? [{:keys [status headers]}]
   (and (is (= 303 status))
-       (is (= contact-list-path (:location headers)))))
+       (is (= contacts-list-path (:location headers)))))
 
 (defn- saved-contact-is-in-contacts-list? [contacts contact {:keys [status] :as response}]
   (and (is (= 200 status))
@@ -47,12 +47,12 @@
                 save-contact-request (request/generator sut-path
                                                         {:request-method :post
                                                          :form-params    contact})
-                contact-list-request (request/generator contact-list-path)]
+                contacts-list-request (request/generator contacts-list-path)]
     (let [handler (test-system/construct-handler contacts)
           save-contact-response (test-system/make-request handler save-contact-request)
-          contact-list-response (test-system/make-request handler contact-list-request)]
-      (is (saving-contact-redirects-to-contact-list? save-contact-response))
-      (is (saved-contact-is-in-contacts-list? contacts contact contact-list-response)))))
+          contacts-list-response (test-system/make-request handler contacts-list-request)]
+      (is (saving-contact-redirects-to-contacts-list? save-contact-response))
+      (is (saved-contact-is-in-contacts-list? contacts contact contacts-list-response)))))
 
 (defn- saving-contact-results-in-client-error? [{:keys [status]}]
   (is (= 400 status)))

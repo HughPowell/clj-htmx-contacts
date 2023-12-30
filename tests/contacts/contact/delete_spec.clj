@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.test-lib.contact-list :as contact-list]
+            [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
@@ -13,7 +13,7 @@
 
 (def ^:private sut-path-format "/contacts/%s/delete")
 
-(defn- deleting-contact-redirects-to-contact-list? [{:keys [status headers]}]
+(defn- deleting-contact-redirects-to-contacts-list? [{:keys [status headers]}]
   (is (= 303 status))
   (is (= contacts-list-path (:location headers))))
 
@@ -25,14 +25,14 @@
 (deftest deleting-contact-deletes-contact-in-contacts-list
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
-                contact-list-request (request/generator contacts-list-path)
-                contact-to-delete (contact-list/nth-contact-generator handler)
+                contacts-list-request (request/generator contacts-list-path)
+                contact-to-delete (contacts-list/nth-contact-generator handler)
                 delete-contact-request (request/generator (format sut-path-format (:id contact-to-delete))
                                                           {:request-method :post})]
     (let [delete-contact-response (test-system/make-request handler delete-contact-request)
-          contact-list-response (test-system/make-request handler contact-list-request)]
-      (deleting-contact-redirects-to-contact-list? delete-contact-response)
-      (deleted-contact-is-not-in-contacts-list? contacts (:id contact-to-delete) contact-list-response))))
+          contacts-list-response (test-system/make-request handler contacts-list-request)]
+      (deleting-contact-redirects-to-contacts-list? delete-contact-response)
+      (deleted-contact-is-not-in-contacts-list? contacts (:id contact-to-delete) contacts-list-response))))
 
 (defn- non-existent-contact-not-found? [{:keys [status]}]
   (is (= 404 status)))
@@ -41,7 +41,7 @@
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
                 contacts-request (request/generator contacts-list-path)
-                existing-contacts (contact-list/existing-contacts-generator handler)
+                existing-contacts (contacts-list/existing-contacts-generator handler)
                 contact-ids (generators/return (set (map :id existing-contacts)))
                 id (generators/such-that
                      (fn [id]

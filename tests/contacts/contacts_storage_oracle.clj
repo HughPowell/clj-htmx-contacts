@@ -3,7 +3,7 @@
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.test-lib.contact-list :as contact-list]
+            [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.database :as database]
             [contacts.test-lib.oracle :as oracle]
             [contacts.system.contacts-storage :as contacts-storage]))
@@ -59,9 +59,9 @@
                              (generators/elements)
                              (generators/vector)
                              (generators/such-that seq))
-                initial-contacts (contact-list/new-contacts-generator)
-                new-contacts (contact-list/new-contacts-generator (count (filter #{:create} actions)))
-                contact-updates (contact-list/new-contacts-generator (count (filter #{:update} actions)))
+                initial-contacts (contacts-list/new-contacts-generator)
+                new-contacts (contacts-list/new-contacts-generator (count (filter #{:create} actions)))
+                contact-updates (contacts-list/new-contacts-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
       (let [sut (contacts-storage/contacts-storage connection)
@@ -80,8 +80,8 @@
                 :update (update-contact sut oracle (first contact-updates) index-%)
                 :delete (delete-contact sut oracle index-%))
 
-              (is (= (contact-list/strip-ids (contacts-storage/retrieve oracle))
-                     (contact-list/strip-ids (contacts-storage/retrieve sut))))
+              (is (= (contacts-list/strip-ids (contacts-storage/retrieve oracle))
+                     (contacts-list/strip-ids (contacts-storage/retrieve sut))))
 
               (recur
                 (rest actions)
@@ -121,9 +121,9 @@
                              (generators/elements)
                              (generators/vector)
                              (generators/such-that seq))
-                initial-contacts (contact-list/new-contacts-generator)
-                new-contacts (contact-list/new-contacts-generator (count (filter #{:create} actions)))
-                contact-updates (contact-list/new-contacts-generator (count (filter #{:update} actions)))
+                initial-contacts (contacts-list/new-contacts-generator)
+                new-contacts (contacts-list/new-contacts-generator (count (filter #{:create} actions)))
+                contact-updates (contacts-list/new-contacts-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
       (let [sut (contacts-storage/contacts-storage connection)]

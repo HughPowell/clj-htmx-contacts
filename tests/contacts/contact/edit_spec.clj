@@ -4,7 +4,7 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.edit :as sut]
-            [contacts.test-lib.contact-list :as contact-list]
+            [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
@@ -34,14 +34,14 @@
 (deftest renders-an-editable-contact
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
-                contact-to-update (contact-list/nth-contact-generator handler)
+                contact-to-update (contacts-list/nth-contact-generator handler)
                 update-request (request/generator (format sut-path-format (:id contact-to-update)))]
     (let [response (test-system/make-request handler update-request)]
       (contact-is-returned-as-html-ok? response)
       (form-contains-contact? contact-to-update response))))
 
 
-(defn- updating-contact-redirects-to-contact-list? [{:keys [status headers]}]
+(defn- updating-contact-redirects-to-contacts-list? [{:keys [status headers]}]
   (and (is (= 303 status))
        (is (= contacts-list-path (:location headers)))))
 
@@ -53,18 +53,18 @@
 (deftest updating-contact-updates-contact-in-contacts-list
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
-                contact-to-update (contact-list/nth-contact-generator handler)
+                contact-to-update (contacts-list/nth-contact-generator handler)
                 new-contact-data (malli.generator/generator sut/schema)
                 save-contact-request (request/generator (format sut-path-format (:id contact-to-update))
                                                         {:request-method :post
                                                          :form-params    new-contact-data})
-                contact-list-request (request/generator contacts-list-path)]
+                contacts-list-request (request/generator contacts-list-path)]
     (let [save-contact-response (test-system/make-request handler save-contact-request)
-          contact-list-response (test-system/make-request handler contact-list-request)]
-      (is (updating-contact-redirects-to-contact-list? save-contact-response))
+          contacts-list-response (test-system/make-request handler contacts-list-request)]
+      (is (updating-contact-redirects-to-contacts-list? save-contact-response))
       (is (updated-contact-is-in-contacts-list? contacts
                                                 (merge contact-to-update new-contact-data)
-                                                contact-list-response)))))
+                                                contacts-list-response)))))
 
 
 (defn- saving-contact-results-in-client-error? [{:keys [status]}]
@@ -97,7 +97,7 @@
 (deftest updating-contact-with-invalid-data-returns-to-editing-screen
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
-                contact-to-update (contact-list/nth-contact-generator handler)
+                contact-to-update (contacts-list/nth-contact-generator handler)
                 invalid-contact (->> [:map
                                       [:first-name :string]
                                       [:last-name :string]
@@ -120,7 +120,7 @@
 (deftest updating-non-existent-contact-fails
   (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
                 handler (generators/return (test-system/construct-handler contacts))
-                existing-contacts (contact-list/existing-contacts-generator handler)
+                existing-contacts (contacts-list/existing-contacts-generator handler)
                 id (generators/such-that
                      (fn [id]
                        (and (seq id)

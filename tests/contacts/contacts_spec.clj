@@ -4,7 +4,7 @@
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
-            [contacts.test-lib.contact-list :as contact-list]
+            [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
@@ -34,11 +34,11 @@
   (= "text/html;charset=UTF-8" (get-in response [:headers :content-type])))
 
 (defn- all-contacts-are-rendered? [contacts response]
-  (= (mset/multiset (contact-list/strip-ids (html/rendered-contacts response)))
+  (= (mset/multiset (contacts-list/strip-ids (html/rendered-contacts response)))
      (mset/multiset contacts)))
 
 (deftest all-contacts-returned-when-no-query
-  (checking "" [contacts (generators/such-that seq (contact-list/new-contacts-generator))
+  (checking "" [contacts (generators/such-that seq (contacts-list/new-contacts-generator))
                 request (request-generator sut-path)]
     (let [response (-> contacts
                        (test-system/construct-handler)
@@ -68,7 +68,7 @@
 (deftest contacts-that-match-search-are-rendered
   (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
                 handler (generators/return (test-system/construct-handler contacts))
-                existing-contacts (contact-list/existing-contacts-generator handler)
+                existing-contacts (contacts-list/existing-contacts-generator handler)
                 string' (if (seq contacts)
                           (generators/one-of
                             [(->> existing-contacts

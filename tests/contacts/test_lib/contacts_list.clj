@@ -1,4 +1,4 @@
-(ns contacts.test-lib.contact-list
+(ns contacts.test-lib.contacts-list
   (:require [clojure.test :refer :all]
             [clojure.test.check.generators :as generators]
             [contacts.system.contacts-storage :as contacts-storage]
@@ -13,14 +13,14 @@
                           (malli.generator/generator contacts-storage/new-contact-schema)
                           opts)))
 
-(defn- contact-list [handler contact-list-request]
-  (->> contact-list-request
+(defn- contacts-list [handler contacts-list-request]
+  (->> contacts-list-request
        (test-system/make-request handler)
        (html/rendered-contacts)))
 
 (defn existing-contacts-generator [handler]
-  (generators/let [contact-list-request (request/generator "/contacts")]
-    (generators/return (contact-list handler contact-list-request))))
+  (generators/let [contacts-list-request (request/generator "/contacts")]
+    (generators/return (contacts-list handler contacts-list-request))))
 
 (defn nth-contact-generator [handler]
   (generators/let [contacts (existing-contacts-generator handler)
