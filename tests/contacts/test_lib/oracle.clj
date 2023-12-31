@@ -45,7 +45,8 @@
           (loop [proposed-id (str (random-uuid))]
             (if (contains? @store proposed-id)
               (recur (str (random-uuid)))
-              (let [new-user {:authorisation-id authorisation-id :user-id proposed-id}]
+              (let [new-user {:authorisation-id authorisation-id
+                              :user-id proposed-id}]
                 (swap! store assoc proposed-id new-user)
                 new-user))))))))
 
@@ -56,5 +57,4 @@
         {:user (users-storage/->user users-storage authorisation-id)}))
     (handle-unauthorized [_ _])))
 
-(comment
-  )
+(comment)

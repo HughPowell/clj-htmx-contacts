@@ -3,9 +3,9 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.test-lib.contacts-list :as contacts-list]
-            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.users :as users]))
 
 (def ^:private contacts-list-path "/contacts")
@@ -16,7 +16,8 @@
   (is (= 303 status))
   (is (= contacts-list-path (:location headers))))
 
-(defn- deleted-contact-is-not-in-contacts-list? [contacts contact-id {:keys [status] :as response}]
+(defn- deleted-contact-is-not-in-contacts-list? [contacts contact-id {:keys [status]
+                                                                      :as response}]
   (is (= 200 status))
   (is (set (html/rendered-contacts response))
       (set (remove (fn [{:keys [id]}] (= contact-id id)) contacts))))
@@ -29,12 +30,12 @@
                 contact-to-delete (contacts-list/nth-contact-generator handler authorisation-id)
                 delete-contact-request (request/generator authorisation-id
                                                           (format sut-path-format
-                                                                                     (:id contact-to-delete))
+                                                                  (:id contact-to-delete))
                                                           {:request-method :post})]
-    (let [delete-contact-response (test-system/make-request handler delete-contact-request)
-          contacts-list-response (test-system/make-request handler contacts-list-request)]
-      (deleting-contact-redirects-to-contacts-list? delete-contact-response)
-      (deleted-contact-is-not-in-contacts-list? contacts (:id contact-to-delete) contacts-list-response))))
+            (let [delete-contact-response (test-system/make-request handler delete-contact-request)
+                  contacts-list-response (test-system/make-request handler contacts-list-request)]
+              (deleting-contact-redirects-to-contacts-list? delete-contact-response)
+              (deleted-contact-is-not-in-contacts-list? contacts (:id contact-to-delete) contacts-list-response))))
 
 (defn- non-existent-contact-not-found? [{:keys [status]}]
   (is (= 404 status)))
@@ -54,8 +55,8 @@
                 delete-request (request/generator authorisation-id
                                                   (format sut-path-format id)
                                                   {:request-method :post})]
-    (let [response (test-system/make-request handler delete-request)]
-      (non-existent-contact-not-found? response))))
+            (let [response (test-system/make-request handler delete-request)]
+              (non-existent-contact-not-found? response))))
 
 (deftest deleting-other-users-contact-fails
   (checking "" [authorisation-ids users/two-plus-authorisation-ids-generator
@@ -68,11 +69,10 @@
                 delete-request (request/generator accessor-authorisation-id
                                                   (format sut-path-format (:id owners-contact))
                                                   {:request-method :post})]
-    (let [response (test-system/make-request handler delete-request)]
-      (is (non-existent-contact-not-found? response)))))
+            (let [response (test-system/make-request handler delete-request)]
+              (is (non-existent-contact-not-found? response)))))
 
 (comment
   (deleting-contact-deletes-contact-in-contacts-list)
   (deleting-non-existent-contact-fails)
-  (deleting-other-users-contact-fails)
-  )
+  (deleting-other-users-contact-fails))

@@ -1,0 +1,5 @@
+{:paths ["src" "tests" "dev" "infra" "shared"]
+ :remove-multiple-non-indenting-spaces? true
+ :split-keypairs-over-multiple-lines? true
+ :sort-ns-references? true
+ :function-arguments-indentation :cursive}

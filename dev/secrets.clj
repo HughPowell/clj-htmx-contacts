@@ -4,7 +4,8 @@
             [clojure.string :as string]))
 
 (defn- sh [& args]
-  (let [{:keys [exit out err] :as response} (apply shell/sh args)]
+  (let [{:keys [exit out err]
+         :as response} (apply shell/sh args)]
     (if (zero? exit)
       (string/trimr out)
       (throw (ex-info (if (seq err) err out) response)))))

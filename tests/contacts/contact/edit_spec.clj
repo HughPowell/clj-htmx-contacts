@@ -4,11 +4,11 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.contact.edit :as sut]
+            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
-            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.users :as users]
             [malli.core :as malli]
             [malli.generator :as malli.generator]
@@ -39,16 +39,16 @@
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
                 update-request (request/generator authorisation-id
                                                   (format sut-path-format (:id contact-to-update)))]
-    (let [response (test-system/make-request handler update-request)]
-      (contact-is-returned-as-html-ok? response)
-      (form-contains-contact? contact-to-update response))))
-
+            (let [response (test-system/make-request handler update-request)]
+              (contact-is-returned-as-html-ok? response)
+              (form-contains-contact? contact-to-update response))))
 
 (defn- updating-contact-redirects-to-contacts-list? [{:keys [status headers]}]
   (and (is (= 303 status))
        (is (= contacts-list-path (:location headers)))))
 
-(defn- updated-contact-is-in-contacts-list? [contacts contact {:keys [status] :as response}]
+(defn- updated-contact-is-in-contacts-list? [contacts contact {:keys [status]
+                                                               :as response}]
   (and (is (= 200 status))
        (is (set (html/rendered-contacts response))
            (set (conj contacts contact)))))
@@ -63,15 +63,14 @@
                                        authorisation-id
                                        (format sut-path-format (:id contact-to-update))
                                        {:request-method :post
-                                        :form-params    new-contact-data})
+                                        :form-params new-contact-data})
                 contacts-list-request (request/generator authorisation-id contacts-list-path)]
-    (let [save-contact-response (test-system/make-request handler save-contact-request)
-          contacts-list-response (test-system/make-request handler contacts-list-request)]
-      (is (updating-contact-redirects-to-contacts-list? save-contact-response))
-      (is (updated-contact-is-in-contacts-list? contacts
-                                                (merge contact-to-update new-contact-data)
-                                                contacts-list-response)))))
-
+            (let [save-contact-response (test-system/make-request handler save-contact-request)
+                  contacts-list-response (test-system/make-request handler contacts-list-request)]
+              (is (updating-contact-redirects-to-contacts-list? save-contact-response))
+              (is (updated-contact-is-in-contacts-list? contacts
+                                                        (merge contact-to-update new-contact-data)
+                                                        contacts-list-response)))))
 
 (defn- saving-contact-results-in-client-error? [{:keys [status]}]
   (is (= 400 status)))
@@ -118,10 +117,10 @@
                                              (request/generator
                                                authorisation-id
                                                (format sut-path-format (:id contact-to-update))))]
-    (let [invalid-contact-response (test-system/make-request handler invalid-contact-request)]
-      (saving-contact-results-in-client-error? invalid-contact-response)
-      (original-data-is-displayed? invalid-contact invalid-contact-response)
-      (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))
+            (let [invalid-contact-response (test-system/make-request handler invalid-contact-request)]
+              (saving-contact-results-in-client-error? invalid-contact-response)
+              (original-data-is-displayed? invalid-contact invalid-contact-response)
+              (errors-displayed-only-for-all-invalid-fields? invalid-contact invalid-contact-response))))
 
 (defn- non-existent-contact-not-found? [{:keys [status]}]
   (is (= 404 status)))
@@ -140,9 +139,9 @@
                 request (request/generator authorisation-id
                                            (format sut-path-format id)
                                            {:request-method :post
-                                                               :form-params    contact-data})]
-    (let [response (test-system/make-request handler request)]
-      (non-existent-contact-not-found? response))))
+                                            :form-params contact-data})]
+            (let [response (test-system/make-request handler request)]
+              (non-existent-contact-not-found? response))))
 
 (deftest updating-other-users-contact-fails
   (checking "" [authorisation-ids users/two-plus-authorisation-ids-generator
@@ -156,14 +155,13 @@
                 update-request (request/generator accessor-authorisation-id
                                                   (format sut-path-format (:id owners-contact))
                                                   {:request-method :post
-                                                                      :form-params    contact-data})]
-    (let [response (test-system/make-request handler update-request)]
-      (is (non-existent-contact-not-found? response)))))
+                                                   :form-params contact-data})]
+            (let [response (test-system/make-request handler update-request)]
+              (is (non-existent-contact-not-found? response)))))
 
 (comment
   (renders-an-editable-contact)
   (updating-contact-updates-contact-in-contacts-list)
   (updating-contact-with-invalid-data-returns-to-editing-screen)
   (updating-non-existent-contact-fails)
-  (updating-other-users-contact-fails)
-  )
+  (updating-other-users-contact-fails))

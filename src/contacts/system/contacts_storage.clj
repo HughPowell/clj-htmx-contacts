@@ -2,10 +2,10 @@
   (:require [clojure.string :as string]
             [com.stuartsierra.component :as component]
             [contacts.contact.schemas :as schemas]
-            [malli.util :as malli.util]
-            [next.jdbc :as jdbc]
             [honey.sql :as sql]
-            [honey.sql.helpers :as sql.helpers])
+            [honey.sql.helpers :as sql.helpers]
+            [malli.util :as malli.util]
+            [next.jdbc :as jdbc])
   (:refer-clojure :exclude [update]))
 
 ;; Schemas
@@ -34,30 +34,30 @@
 ;; Persistence
 
 (def contacts-table
-  {:up   (-> (sql.helpers/create-table :contacts :if-not-exists)
-             (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
-                                        [:first-name :varchar [:not nil]]
-                                        [:last-name :varchar [:not nil]]
-                                        [:phone :varchar [:not nil]]
-                                        [:email :varchar [:not nil]]]))
+  {:up (-> (sql.helpers/create-table :contacts :if-not-exists)
+           (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
+                                      [:first-name :varchar [:not nil]]
+                                      [:last-name :varchar [:not nil]]
+                                      [:phone :varchar [:not nil]]
+                                      [:email :varchar [:not nil]]]))
    :down (sql.helpers/drop-table :contacts)})
 
 (def user-id-column
-  {:up   (-> (sql.helpers/alter-table :contacts)
-             (sql.helpers/add-column :user-id :varchar))
+  {:up (-> (sql.helpers/alter-table :contacts)
+           (sql.helpers/add-column :user-id :varchar))
    :down (-> (sql.helpers/alter-table :contacts)
              (sql.helpers/drop-column :user-id))})
 
 (def user-id-column-references-users-table
   (let [constraint-name "user_id_foreign_key"]
-    {:up   {:alter-table :contacts
-            :raw         (string/join " "
-                                      [(format "ADD CONSTRAINT %s" constraint-name)
-                                       "FOREIGN KEY (user_id)"
-                                       "REFERENCES users(user_id)"
-                                       "ON DELETE CASCADE"])}
+    {:up {:alter-table :contacts
+          :raw (string/join " "
+                            [(format "ADD CONSTRAINT %s" constraint-name)
+                             "FOREIGN KEY (user_id)"
+                             "REFERENCES users(user_id)"
+                             "ON DELETE CASCADE"])}
      :down {:alter-table :contacts
-            :raw         (format "DROP CONSTRAINT %s" constraint-name)}}))
+            :raw (format "DROP CONSTRAINT %s" constraint-name)}}))
 
 (defprotocol ContactsStorage
   (retrieve* [this user-id] [this user-id contact-id])
@@ -108,7 +108,7 @@
         (schemas/coerce contacts-schema)))
   ([contacts-storage user-id contact-id]
    (->> (retrieve* contacts-storage user-id contact-id)
-        (schemas/coerce [:maybe existing-contact-schema]))) )
+        (schemas/coerce [:maybe existing-contact-schema]))))
 
 (defn create [contacts-storage user-id contact]
   (->> contact
@@ -132,5 +132,4 @@
 
 (defn contacts-storage-component [] (map->ContactsStorageComponent {}))
 
-(comment
-  )
+(comment)

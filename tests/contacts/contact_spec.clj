@@ -3,10 +3,10 @@
             [clojure.test :refer [deftest is]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
+            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
-            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.users :as users]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
@@ -34,9 +34,9 @@
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact (contacts-list/nth-contact-generator handler authorisation-id)
                 request (request/generator authorisation-id (format sut-path-format (:id contact)))]
-    (let [response (test-system/make-request handler request)]
-      (is (successfully-returns-html? response))
-      (is (contact-is-rendered? contact response)))))
+            (let [response (test-system/make-request handler request)]
+              (is (successfully-returns-html? response))
+              (is (contact-is-rendered? contact response)))))
 
 (defn- not-found-html? [{:keys [status headers]}]
   (is (= "text/html;charset=UTF-8" (:content-type headers)))
@@ -54,8 +54,8 @@
                          (not (contains? (set (map :id existing-contacts)) id))))
                      generators/string-alphanumeric)
                 request (request/generator authorisation-id (format sut-path-format id))]
-    (let [response (test-system/make-request handler request)]
-      (is (not-found-html? response)))))
+            (let [response (test-system/make-request handler request)]
+              (is (not-found-html? response)))))
 
 (deftest other-users-contact-not-found
   (checking "" [authorisation-ids users/two-plus-authorisation-ids-generator
@@ -67,11 +67,10 @@
                 owners-contact (generators/elements owners-contacts)
                 request (request/generator accessor-authorisation-id
                                            (format sut-path-format (:id owners-contact)))]
-    (let [response (test-system/make-request handler request)]
-      (is (not-found-html? response)))))
+            (let [response (test-system/make-request handler request)]
+              (is (not-found-html? response)))))
 
 (comment
   (retrieving-a-contact-displays-it)
   (non-existent-contact-not-found)
-  (other-users-contact-not-found)
-  )
+  (other-users-contact-not-found))

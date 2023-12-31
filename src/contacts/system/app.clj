@@ -1,16 +1,16 @@
 (ns contacts.system.app
   (:require [aero.core :as aero]
+            [clojure.java.io :as io]
             [clojure.string :as string]
             [com.stuartsierra.component :as component]
-            [contacts.system.auth :as auth]
             [contacts.contact :as contact]
             [contacts.contact.delete :as delete]
             [contacts.contact.edit :as edit]
             [contacts.contact.new :as contact.new]
             [contacts.contacts :as contacts]
-            [clojure.java.io :as io]
             [contacts.lib.page :as page]
             [contacts.lib.request :as request]
+            [contacts.system.auth :as auth]
             [contacts.system.contacts-storage :as contacts-storage]
             [contacts.system.data-source :as data-source]
             [contacts.system.users-storage :as users-storage]
@@ -43,8 +43,8 @@
 
 (defn defaults [auth]
   {:available-media-types ["text/html"]
-   :authorized?           (fn [ctx] (auth/authorized? auth ctx))
-   :handle-unauthorized   (fn [ctx] (auth/handle-unauthorized auth ctx))
+   :authorized? (fn [ctx] (auth/authorized? auth ctx))
+   :handle-unauthorized (fn [ctx] (auth/handle-unauthorized auth ctx))
    :handle-not-acceptable (fn [{:keys [request]}]
                             (string/join
                               " "
@@ -52,32 +52,33 @@
                                        (get-in request [:headers "accept"]))
                                "This server only serves HTML."
                                "Please re-request with Content-Type of text/html, text/* or */*."]))
-   :handle-not-found      (fn [{:keys [request]}] (representation/ring-response
-                                                    {:headers {"Content-Type" "text/html;charset=UTF-8"}
-                                                     :body    (could-not-find-it request)}))
-   :handle-exception      (fn [{:keys [request] :as context}]
-                            (tap> context)
-                            (representation/ring-response
-                              {:headers {"Content-Type" "text/html;charset=UTF-8"}
-                               :body    (we-messed-up request)}))})
+   :handle-not-found (fn [{:keys [request]}] (representation/ring-response
+                                               {:headers {"Content-Type" "text/html;charset=UTF-8"}
+                                                :body (could-not-find-it request)}))
+   :handle-exception (fn [{:keys [request]
+                           :as context}]
+                       (tap> context)
+                       (representation/ring-response
+                         {:headers {"Content-Type" "text/html;charset=UTF-8"}
+                          :body (we-messed-up request)}))})
 
 (defn router [auth contacts-storage]
   (ring/router [["/" (resource (defaults auth)
-                       :handle-ok (fn [_]
-                                    (representation/ring-response
-                                      {:status  303
-                                       :headers {"Location" "/contacts"}})))]
+                               :handle-ok (fn [_]
+                                            (representation/ring-response
+                                              {:status 303
+                                               :headers {"Location" "/contacts"}})))]
                 ["/favicon.ico" (resource (defaults auth)
-                                  :available-media-types ["image/x-icon"]
-                                  :handle-ok (fn [_] (-> "public/favicon.ico"
-                                                         (io/resource)
-                                                         (io/input-stream))))]
+                                          :available-media-types ["image/x-icon"]
+                                          :handle-ok (fn [_] (-> "public/favicon.ico"
+                                                                 (io/resource)
+                                                                 (io/input-stream))))]
                 ["/public/*" (ring/create-resource-handler)]
                 ["/contacts" (contacts/resource (defaults auth) contacts-storage)]
                 ["/contacts/new" {:conflicting true
-                                  :handler     (contact.new/resource (defaults auth) contacts-storage)}]
+                                  :handler (contact.new/resource (defaults auth) contacts-storage)}]
                 ["/contacts/:id" {:conflicting true
-                                  :handler     (contact/resource (defaults auth) contacts-storage)}]
+                                  :handler (contact/resource (defaults auth) contacts-storage)}]
                 ["/contacts/:id/edit" (edit/resource (defaults auth) contacts-storage)]
                 ["/contacts/:id/delete" (delete/resource (defaults auth) contacts-storage)]]))
 
@@ -86,19 +87,20 @@
     (ring/ring-handler
       router
       (ring/create-default-handler
-        {:not-found      (fn [request] {:status 404
-                                        :body   (could-not-find-it request)})
+        {:not-found (fn [request] {:status 404
+                                   :body (could-not-find-it request)})
          :not-acceptable (fn [request] {:status 500
-                                        :body   (we-messed-up request)})})
-      {:middleware     [session/wrap-session
-                        cookies/wrap-cookies
-                        flash/wrap-flash
-                        #(request/wrap-params % {:router router})]
-       :inject-match?  false
+                                        :body (we-messed-up request)})})
+      {:middleware [session/wrap-session
+                    cookies/wrap-cookies
+                    flash/wrap-flash
+                    #(request/wrap-params % {:router router})]
+       :inject-match? false
        :inject-router? false})))
 
 (defn start-server [contacts-storage auth]
-  (jetty/run-jetty (#'handler auth contacts-storage) {:join? false :port 3000}))
+  (jetty/run-jetty (#'handler auth contacts-storage) {:join? false
+                                                      :port 3000}))
 
 (defrecord ServerComponent [contacts-storage auth]
   component/Lifecycle
@@ -138,5 +140,4 @@
       (Thread. ^Runnable #(component/stop-system system)))))
 
 (comment
-  (user/reset-app)
-  )
+  (user/reset-app))

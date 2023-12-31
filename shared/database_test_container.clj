@@ -11,12 +11,12 @@
   (:import (org.testcontainers.containers PostgreSQLContainer)))
 
 (defn credentials [database-container]
-  {:dbtype   "postgresql"
-   :dbname   (.getDatabaseName (:container database-container))
-   :user     (.getUsername (:container database-container))
+  {:dbtype "postgresql"
+   :dbname (.getDatabaseName (:container database-container))
+   :user (.getUsername (:container database-container))
    :password (.getPassword (:container database-container))
-   :host     (.getHost (:container database-container))
-   :port     (get (:mapped-ports database-container) 5432)})
+   :host (.getHost (:container database-container))
+   :port (get (:mapped-ports database-container) 5432)})
 
 (defn truncate-all-tables [data-source]
   (when data-source
@@ -25,7 +25,7 @@
       [{:raw "TRUNCATE users, contacts RESTART IDENTITY"}])))
 
 (defn init-database []
-  (let [database (-> (test-containers/init {:container     (PostgreSQLContainer. "postgres:15.3")
+  (let [database (-> (test-containers/init {:container (PostgreSQLContainer. "postgres:15.3")
                                             :exposed-ports [5432]})
                      (test-containers/start!))]
     (ragtime/migrate-all (ragtime.next-jdbc/sql-database (credentials database))

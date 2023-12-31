@@ -10,8 +10,8 @@
             [idle.multiset.api]
             [malli.generator]
             [potemkin]
-            [ragtime.repl]
             [ragtime.next-jdbc]
+            [ragtime.repl]
             [secrets]))
 
 (potemkin/import-vars
@@ -49,5 +49,4 @@
 
   (hard-reset)
   (empty-database system)
-  (database/stop)
-  )
+  (database/stop))

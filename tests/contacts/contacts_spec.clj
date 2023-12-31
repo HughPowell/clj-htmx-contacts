@@ -5,9 +5,9 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.test-lib.contacts-list :as contacts-list]
-            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.users :as users]
             [idle.multiset.api :as mset]))
 
@@ -32,12 +32,12 @@
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
                 request (request/generator authorisation-id sut-path)]
-    (let [response (-> authorisation-id
-                       (test-system/construct-handler-for-user contacts)
-                       (test-system/make-request request))]
-      (is (successful-response? response))
-      (is (returns-expected-data-type? response))
-      (is (all-contacts-are-rendered? contacts response)))))
+            (let [response (-> authorisation-id
+                               (test-system/construct-handler-for-user contacts)
+                               (test-system/make-request request))]
+              (is (successful-response? response))
+              (is (returns-expected-data-type? response))
+              (is (all-contacts-are-rendered? contacts response)))))
 
 (defn- all-contacts-that-match-are-rendered? [response search]
   (let [rendered-contacts (html/rendered-contacts response)]
@@ -73,12 +73,12 @@
                 request (request/generator authorisation-id
                                            sut-path
                                            {:query-params {:query search}})]
-    (let [response (test-system/make-request handler request)]
-      (is (successful-response? response))
-      (is (returns-expected-data-type? response))
-      (is (all-contacts-that-match-are-rendered? response search))
-      (is (unmatched-contacts-are-not-rendered? existing-contacts response search))
-      (is (all-rendered-contacts-exist? existing-contacts response)))))
+            (let [response (test-system/make-request handler request)]
+              (is (successful-response? response))
+              (is (returns-expected-data-type? response))
+              (is (all-contacts-that-match-are-rendered? response search))
+              (is (unmatched-contacts-are-not-rendered? existing-contacts response search))
+              (is (all-rendered-contacts-exist? existing-contacts response)))))
 
 (defn- unauthorised-response? [response]
   (is (= 401 (:status response))))
@@ -86,11 +86,10 @@
   (checking "" [contacts contacts-list/contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user nil contacts))
                 request (request/generator nil sut-path)]
-    (let [response (test-system/make-request handler request)]
-      (is (unauthorised-response? response)))))
+            (let [response (test-system/make-request handler request)]
+              (is (unauthorised-response? response)))))
 
 (comment
   (all-contacts-returned-when-no-query)
   (contacts-that-match-search-are-rendered)
-  (unauthorised-requests-are-rejected)
-  )
+  (unauthorised-requests-are-rejected))

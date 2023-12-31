@@ -3,8 +3,8 @@
             [clojure.test.check.generators :as generators]
             [malli.generator :as malli.generator]
             [meta-merge.core :as meta-merge])
-  (:import (java.nio.charset Charset StandardCharsets)
-           (java.net URLEncoder)))
+  (:import (java.net URLEncoder)
+           (java.nio.charset Charset StandardCharsets)))
 
 (defn ip-address? [s]
   (try
@@ -26,7 +26,6 @@
    [:request-method [:enum :get]]
    [:protocol [:enum "HTTP/1.1" "HTTP/2"]]
    [:headers headers]])
-
 
 (defn- map->url-string [m]
   (->> m
@@ -68,5 +67,4 @@
              (assoc :authorisation-id authorisation-id))))
      (malli.generator/generator schema))))
 
-(comment
-  )
+(comment)

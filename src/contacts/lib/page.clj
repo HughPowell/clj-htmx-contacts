@@ -7,7 +7,8 @@
 (defn render [{:keys [request logout-uri]} content]
   (str
     (hiccup2/html
-      {:mode :html :lang "en"}
+      {:mode :html
+       :lang "en"}
       (page/doctype :html5)
       [:html
        [:head
@@ -29,5 +30,4 @@
   ([name] (search-field name nil))
   ([name value] (#'form/input-field "search" name value)))
 
-(comment
-  )
+(comment)

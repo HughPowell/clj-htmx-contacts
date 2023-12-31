@@ -1,6 +1,6 @@
 (ns contacts.system.users-storage
-  (:require [contacts.contact.schemas :as schemas]
-            [com.stuartsierra.component :as component]
+  (:require [com.stuartsierra.component :as component]
+            [contacts.contact.schemas :as schemas]
             [honey.sql :as sql]
             [honey.sql.helpers :as sql.helpers]
             [next.jdbc :as jdbc]))
@@ -8,9 +8,9 @@
 ;; Schemas
 
 (def users-table
-  {:up   (-> (sql.helpers/create-table :users :if-not-exists)
-             (sql.helpers/with-columns [[:user-id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
-                                        [:authorisation-id :varchar :not-null :unique]]))
+  {:up (-> (sql.helpers/create-table :users :if-not-exists)
+           (sql.helpers/with-columns [[:user-id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
+                                      [:authorisation-id :varchar :not-null :unique]]))
    :down (sql.helpers/drop-table :users)})
 
 (def user-schema
@@ -53,6 +53,4 @@
 
 (defn users-storage-component [] (map->UsersStorageComponent {}))
 
-(comment
-
-  )
+(comment)

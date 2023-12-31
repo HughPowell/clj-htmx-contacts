@@ -34,7 +34,8 @@
 
 (defn nth-contact-generator [handler authorisation-id]
   (generators/let [contacts (existing-contacts-generator handler authorisation-id)
-                   contact-index (generators/large-integer* {:min 0 :max (dec (count contacts))})]
+                   contact-index (generators/large-integer* {:min 0
+                                                             :max (dec (count contacts))})]
     (generators/return (nth contacts contact-index))))
 
 (defn strip-ids [contacts]

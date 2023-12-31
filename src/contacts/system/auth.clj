@@ -3,8 +3,8 @@
             [camel-snake-kebab.core :as camel-snake-kebab]
             [cheshire.core :as cheshire]
             [clj-http.client :as client]
-            [contacts.lib.http :as http]
             [com.stuartsierra.component :as component]
+            [contacts.lib.http :as http]
             [contacts.system.users-storage :as users-storage]
             [java-time.api :as java-time]
             [liberator.representation :as representation]))
@@ -18,11 +18,11 @@
 (defn- authorise-code [config request]
   (when-let [code (get-in request [:params :code])]
     (let [response (client/post (:authorise-uri config)
-                                {:form-params      {:client_id     (:client-id config)
-                                                    :client_secret (:client-secret config)
-                                                    :code          code
-                                                    :redirect_uri  (:redirect-uri config)
-                                                    :grant_type    "authorization_code"}
+                                {:form-params {:client_id (:client-id config)
+                                               :client_secret (:client-secret config)
+                                               :code code
+                                               :redirect_uri (:redirect-uri config)
+                                               :grant_type "authorization_code"}
                                  :throw-exceptions false})]
       (when (= (:status response) 200)
         (try
@@ -45,9 +45,9 @@
 
 (defn- cookie
   ([value]
-   {:value     value
+   {:value value
     :http-only true
-    :secure    true})
+    :secure true})
   ([value expires]
    (merge
      (cookie value)
@@ -73,18 +73,18 @@
         (auth-redirect? request)
         (if-let [[expires id-token] (authorise-code config request)]
           [false {:login-completed? true
-                  :id-token         id-token
-                  :expiry           expires}]
+                  :id-token id-token
+                  :expiry expires}]
           [false {:login-completed? false}])
 
         (authorization-cookie? request)
         (if-let [subject-id (cookie->subject-id config request)]
-          [true {:user             (users-storage/->user users-storage subject-id)
-                 :logout-uri       (http/construct-url
-                                     (:logout-uri config)
-                                     {:post-logout-redirect-uri (:redirect-uri config)
-                                      :id-token-hint            (get-in request [:cookies "authorization" :value])
-                                      :state                    (get-in request [:cookies "state" :value])})}]
+          [true {:user (users-storage/->user users-storage subject-id)
+                 :logout-uri (http/construct-url
+                               (:logout-uri config)
+                               {:post-logout-redirect-uri (:redirect-uri config)
+                                :id-token-hint (get-in request [:cookies "authorization" :value])
+                                :state (get-in request [:cookies "state" :value])})}]
           [false {:login-completed? false}])
 
         :else
@@ -94,21 +94,21 @@
       (let [state (str (random-uuid))]
         (if login-completed?
           (representation/ring-response
-            {:status  303
+            {:status 303
              :headers {"Location" (get-in request [:cookies "location" :value])}
              :cookies {:authorization (cookie id-token expiry)
-                       :state         (cookie state expiry)
-                       :location      cookie-reset}})
+                       :state (cookie state expiry)
+                       :location cookie-reset}})
           (representation/ring-response
-            {:status  303
+            {:status 303
              :headers {"Location" (->> (select-keys config [:client-id :client-secret])
                                        (merge {:response-type "code"
-                                               :scope         "openid"
-                                               :redirect-uri  (:redirect-uri config)
-                                               :state         state})
+                                               :scope "openid"
+                                               :redirect-uri (:redirect-uri config)
+                                               :state state})
                                        (http/construct-url (:login-uri config)))}
-             :cookies {:state         (cookie state)
-                       :location      (cookie (http/construct-url request))
+             :cookies {:state (cookie state)
+                       :location (cookie (http/construct-url request))
                        :authorization cookie-reset}}))))))
 
 (defrecord AuthComponent [users-storage config]

@@ -26,7 +26,11 @@
   ([name label type place-holder value error]
    [:p
     (form/label name label)
-    [:input {:name name :id name :type type :placeholder place-holder :value value}]
+    [:input {:name name
+             :id name
+             :type type
+             :placeholder place-holder
+             :value value}]
     [:span.error error]]))
 
 (defn- ->human-readable-option-list [option-list]
@@ -58,26 +62,28 @@
 
 (defn resource [default contacts-storage]
   (liberator/resource default
-    :allowed-methods [:get :post]
-    :malformed? (fn [{:keys [request] {:keys [request-method]} :request}]
-                  (let [contact (:params request)]
-                    (case request-method
-                      :get false
-                      :post (let [updates {:contact contact}]
-                              (if (malli/validate schema contact)
-                                [false updates]
-                                [true (merge
-                                        updates
-                                        {:validation-errors (malli/explain schema contact)})])))))
-    :post-redirect? true
-    :location "/contacts"
-    :post! (fn [{:keys [contact user]}]
-             (storage/create contacts-storage (:user-id user) contact))
-    :handle-see-other (representation/ring-response
-                        {:flash "New Contact Created!"})
-    :handle-malformed (fn [{:keys [contact validation-errors] :as ctx}]
-                        (representation/ring-response
-                          (render ctx contact (malli.error/humanize validation-errors))
-                          {:headers {"Content-Type" "text/html"}}))
-    :handle-ok (fn [ctx]
-                 (render ctx))))
+                      :allowed-methods [:get :post]
+                      :malformed? (fn [{:keys [request]
+                                        {:keys [request-method]} :request}]
+                                    (let [contact (:params request)]
+                                      (case request-method
+                                        :get false
+                                        :post (let [updates {:contact contact}]
+                                                (if (malli/validate schema contact)
+                                                  [false updates]
+                                                  [true (merge
+                                                          updates
+                                                          {:validation-errors (malli/explain schema contact)})])))))
+                      :post-redirect? true
+                      :location "/contacts"
+                      :post! (fn [{:keys [contact user]}]
+                               (storage/create contacts-storage (:user-id user) contact))
+                      :handle-see-other (representation/ring-response
+                                          {:flash "New Contact Created!"})
+                      :handle-malformed (fn [{:keys [contact validation-errors]
+                                              :as ctx}]
+                                          (representation/ring-response
+                                            (render ctx contact (malli.error/humanize validation-errors))
+                                            {:headers {"Content-Type" "text/html"}}))
+                      :handle-ok (fn [ctx]
+                                   (render ctx))))

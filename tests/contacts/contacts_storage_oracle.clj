@@ -3,11 +3,11 @@
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
+            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.system.users-storage :as users-storage]
             [contacts.test-lib.contacts-list :as contacts-list]
             [contacts.test-lib.database :as database]
             [contacts.test-lib.oracle :as oracle]
-            [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.users :as users]))
 
 (use-fixtures :once database/postgres-fixture)
@@ -19,7 +19,9 @@
        (generators/vector
          (generators/such-that
            #(not= 1.0 %)
-           (generators/double* {:NaN? false :min 0 :max 1})))))
+           (generators/double* {:NaN? false
+                                :min 0
+                                :max 1})))))
 
 (defn- create-contact [sut sut-user-id oracle oracle-user-id contact]
   (contacts-storage/create sut sut-user-id contact)
@@ -70,33 +72,33 @@
                 new-contacts (contacts-list/n-contacts-list-generator (count (filter #{:create} actions)))
                 contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
-    (with-open [connection (database/reset)]
-      (let [sut (contacts-storage/contacts-storage connection)
-            {sut-user-id :user-id} (users-storage/->user (users-storage/users-storage connection) authorisation-id)
-            oracle (oracle/data-storage)
-            {oracle-user-id :user-id} (users-storage/->user oracle authorisation-id)]
-        (run! (fn [contact] (create-contact sut sut-user-id oracle oracle-user-id contact)) initial-contacts)
-        (loop [actions actions
-               new-contacts new-contacts
-               contact-updates contact-updates
-               index-%s index-%s]
-          (when (seq actions)
-            (let [action (first actions)
-                  index-% (first index-%s)]
-              (case action
-                :create (create-contact sut sut-user-id oracle oracle-user-id (first new-contacts))
-                :retrieve (retrieve-contact sut sut-user-id oracle oracle-user-id index-%)
-                :update (update-contact sut sut-user-id oracle oracle-user-id (first contact-updates) index-%)
-                :delete (delete-contact sut sut-user-id oracle oracle-user-id index-%))
+            (with-open [connection (database/reset)]
+              (let [sut (contacts-storage/contacts-storage connection)
+                    {sut-user-id :user-id} (users-storage/->user (users-storage/users-storage connection) authorisation-id)
+                    oracle (oracle/data-storage)
+                    {oracle-user-id :user-id} (users-storage/->user oracle authorisation-id)]
+                (run! (fn [contact] (create-contact sut sut-user-id oracle oracle-user-id contact)) initial-contacts)
+                (loop [actions actions
+                       new-contacts new-contacts
+                       contact-updates contact-updates
+                       index-%s index-%s]
+                  (when (seq actions)
+                    (let [action (first actions)
+                          index-% (first index-%s)]
+                      (case action
+                        :create (create-contact sut sut-user-id oracle oracle-user-id (first new-contacts))
+                        :retrieve (retrieve-contact sut sut-user-id oracle oracle-user-id index-%)
+                        :update (update-contact sut sut-user-id oracle oracle-user-id (first contact-updates) index-%)
+                        :delete (delete-contact sut sut-user-id oracle oracle-user-id index-%))
 
-              (is (= (contacts-list/strip-ids (contacts-storage/retrieve oracle oracle-user-id))
-                     (contacts-list/strip-ids (contacts-storage/retrieve sut sut-user-id))))
+                      (is (= (contacts-list/strip-ids (contacts-storage/retrieve oracle oracle-user-id))
+                             (contacts-list/strip-ids (contacts-storage/retrieve sut sut-user-id))))
 
-              (recur
-                (rest actions)
-                (if (= action :create) (rest new-contacts) new-contacts)
-                (if (= action :update) (rest contact-updates) contact-updates)
-                (if (#{:retrieve :update :delete} action) (rest index-%s) index-%s)))))))))
+                      (recur
+                        (rest actions)
+                        (if (= action :create) (rest new-contacts) new-contacts)
+                        (if (= action :update) (rest contact-updates) contact-updates)
+                        (if (#{:retrieve :update :delete} action) (rest index-%s) index-%s)))))))))
 
 (defn- ensure-stable-ids-on-create [sut user-id contact]
   (let [original-ids (set (map :id (contacts-storage/retrieve sut user-id)))]
@@ -135,33 +137,31 @@
                 new-contacts (contacts-list/n-contacts-list-generator (count (filter #{:create} actions)))
                 contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
-    (with-open [connection (database/reset)]
-      (let [sut (contacts-storage/contacts-storage connection)
-            {:keys [user-id]} (users-storage/->user (users-storage/users-storage connection) authorisation-id)]
-        (run! (fn [contact] (contacts-storage/create sut user-id contact)) initial-contacts)
-        (loop [actions actions
-               new-contacts new-contacts
-               contact-updates contact-updates
-               index-%s index-%s]
-          (when (seq actions)
+            (with-open [connection (database/reset)]
+              (let [sut (contacts-storage/contacts-storage connection)
+                    {:keys [user-id]} (users-storage/->user (users-storage/users-storage connection) authorisation-id)]
+                (run! (fn [contact] (contacts-storage/create sut user-id contact)) initial-contacts)
+                (loop [actions actions
+                       new-contacts new-contacts
+                       contact-updates contact-updates
+                       index-%s index-%s]
+                  (when (seq actions)
 
-            (let [action (first actions)
-                  index-% (first index-%s)]
-              (case action
-                :create (ensure-stable-ids-on-create sut user-id (first new-contacts))
-                :update (ensure-stable-ids-on-update sut user-id (first contact-updates) index-%)
-                :delete (ensure-stable-ids-on-delete sut user-id index-%))
+                    (let [action (first actions)
+                          index-% (first index-%s)]
+                      (case action
+                        :create (ensure-stable-ids-on-create sut user-id (first new-contacts))
+                        :update (ensure-stable-ids-on-update sut user-id (first contact-updates) index-%)
+                        :delete (ensure-stable-ids-on-delete sut user-id index-%))
 
-              (ensure-ids-are-unique sut user-id)
+                      (ensure-ids-are-unique sut user-id)
 
-              (recur
-                (rest actions)
-                (if (= action :create) (rest new-contacts) new-contacts)
-                (if (= action :update) (rest contact-updates) contact-updates)
-                (if (#{:update :delete} action) (rest index-%s) index-%s)))))))))
-
+                      (recur
+                        (rest actions)
+                        (if (= action :create) (rest new-contacts) new-contacts)
+                        (if (= action :update) (rest contact-updates) contact-updates)
+                        (if (#{:update :delete} action) (rest index-%s) index-%s)))))))))
 
 (comment
   (ensure-contacts-storage-matches-oracle)
-  (ensure-ids-remain-stable)
-  )
+  (ensure-ids-remain-stable))

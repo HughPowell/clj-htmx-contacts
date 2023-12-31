@@ -4,8 +4,8 @@
             [clojure.test.check.generators :as generators]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [contacts.system.app :as app]
-            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.request :as request]
+            [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.users :as users]
             [reitit.core :as reitit]))
 
@@ -19,10 +19,10 @@
                                  (not (#{"text/html" "text/*" "*/*"} (string/trim content-type))))
                                generators/string-alphanumeric)
                 request (request/generator authorisation-id "/" {:headers {"accept" content-type}})]
-    (let [response (-> authorisation-id
-                       (test-system/construct-handler-for-user #{})
-                       (test-system/make-request request))]
-      (is (unsupported-media-type-response? response)))))
+            (let [response (-> authorisation-id
+                               (test-system/construct-handler-for-user #{})
+                               (test-system/make-request request))]
+              (is (unsupported-media-type-response? response)))))
 
 (defn- non-existant-route-returns-not-found? [{:keys [status]}]
   (is (= 404 status)))
@@ -38,14 +38,13 @@
                            (not (contains? existing-routes path))))
                        generators/string-alphanumeric)
                 request (request/generator authorisation-id path)]
-    (let [response (-> authorisation-id
-                       (test-system/construct-handler-for-user #{})
-                       (test-system/make-request request))]
-      (is (non-existant-route-returns-not-found? response)))))
+            (let [response (-> authorisation-id
+                               (test-system/construct-handler-for-user #{})
+                               (test-system/make-request request))]
+              (is (non-existant-route-returns-not-found? response)))))
 
 ;; spec for uncaught exceptions
 
 (comment
   (non-text-html-content-type-not-supported)
-  (not-found-returned-for-unknown-paths)
-  )
+  (not-found-returned-for-unknown-paths))
