@@ -35,7 +35,7 @@
 (deftest renders-an-editable-contact
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
                 update-request (request/authorised-request-generator authorisation-id
                                                                      (format sut-path-format (:id contact-to-update)))]
@@ -56,7 +56,7 @@
 (deftest updating-contact-updates-contact-in-contacts-list
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
                 new-contact-data (malli.generator/generator sut/schema)
                 save-contact-request (request/authorised-request-generator
@@ -103,7 +103,7 @@
 (deftest updating-contact-with-invalid-data-returns-to-editing-screen
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
                 invalid-contact (->> [:map
                                       [:first-name :string]
@@ -129,7 +129,7 @@
 (deftest updating-non-existent-contact-fails
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 id (generators/such-that
                      (fn [id]
@@ -144,11 +144,26 @@
     (let [response (test-system/make-request handler request)]
       (non-existent-contact-not-found? response))))
 
-;; TODO Make sure users can't edit others contacts
+(deftest updating-other-users-contact-fails
+  (checking "" [authorisation-ids users/two-plus-authorisation-ids-generator
+                owner-authorisation-id (generators/elements authorisation-ids)
+                accessor-authorisation-id (generators/elements (disj (set authorisation-ids) owner-authorisation-id))
+                contacts (generators/vector contacts-list/non-empty-contacts-list-generator (count authorisation-ids))
+                handler (generators/return (test-system/construct-handler-for-users authorisation-ids contacts))
+                owners-contacts (contacts-list/existing-contacts-generator handler owner-authorisation-id)
+                owners-contact (generators/elements owners-contacts)
+                contact-data (malli.generator/generator contacts-storage/existing-contact-schema)
+                update-request (request/authorised-request-generator accessor-authorisation-id
+                                                                     (format sut-path-format (:id owners-contact))
+                                                                     {:request-method :post
+                                                                      :form-params    contact-data})]
+    (let [response (test-system/make-request handler update-request)]
+      (is (non-existent-contact-not-found? response)))))
 
 (comment
   (renders-an-editable-contact)
   (updating-contact-updates-contact-in-contacts-list)
   (updating-contact-with-invalid-data-returns-to-editing-screen)
   (updating-non-existent-contact-fails)
+  (updating-other-users-contact-fails)
   )

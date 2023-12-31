@@ -31,7 +31,7 @@
 (deftest retrieving-a-contact-displays-it
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact (contacts-list/nth-contact-generator handler authorisation-id)
                 request (request/authorised-request-generator authorisation-id (format sut-path-format (:id contact)))]
     (let [response (test-system/make-request handler request)]
@@ -45,8 +45,8 @@
 (deftest non-existent-contact-not-found
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
-                existing-contacts (contacts-list/existing-contacts-generator handler)
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
+                existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 id (generators/such-that
                      (fn [id]
                        (and
@@ -57,9 +57,21 @@
     (let [response (test-system/make-request handler request)]
       (is (not-found-html? response)))))
 
-;; TODO Fail to retrieve other user's contact
+(deftest other-users-contact-not-found
+  (checking "" [authorisation-ids users/two-plus-authorisation-ids-generator
+                owner-authorisation-id (generators/elements authorisation-ids)
+                accessor-authorisation-id (generators/elements (disj (set authorisation-ids) owner-authorisation-id))
+                contacts (generators/vector contacts-list/non-empty-contacts-list-generator (count authorisation-ids))
+                handler (generators/return (test-system/construct-handler-for-users authorisation-ids contacts))
+                owners-contacts (contacts-list/existing-contacts-generator handler owner-authorisation-id)
+                owners-contact (generators/elements owners-contacts)
+                request (request/authorised-request-generator accessor-authorisation-id
+                                                              (format sut-path-format (:id owners-contact)))]
+    (let [response (test-system/make-request handler request)]
+      (is (not-found-html? response)))))
 
 (comment
   (retrieving-a-contact-displays-it)
   (non-existent-contact-not-found)
+  (other-users-contact-not-found)
   )

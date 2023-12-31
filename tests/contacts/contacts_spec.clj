@@ -33,7 +33,7 @@
                 contacts contacts-list/non-empty-contacts-list-generator
                 request (request/authorised-request-generator authorisation-id sut-path)]
     (let [response (-> authorisation-id
-                       (test-system/construct-handler-for-users contacts)
+                       (test-system/construct-handler-for-user contacts)
                        (test-system/make-request request))]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
@@ -60,7 +60,7 @@
 (deftest contacts-that-match-search-are-rendered
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/contacts-list-generator
-                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 string' (if (seq contacts)
                           (generators/one-of

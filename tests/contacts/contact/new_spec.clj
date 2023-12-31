@@ -29,7 +29,7 @@
                 contacts contacts-list/contacts-list-generator
                 request (request/authorised-request-generator authorisation-id sut-path)]
     (let [response (-> authorisation-id
-                       (test-system/construct-handler-for-users contacts)
+                       (test-system/construct-handler-for-user contacts)
                        (test-system/make-request request))]
       (and (is (new-contact-form-is-returned-ok? response))
            (is (new-form-is-empty? response))))))
@@ -52,7 +52,7 @@
                                                                            {:request-method :post
                                                                             :form-params    contact})
                 contacts-list-request (request/authorised-request-generator authorisation-id contacts-list-path)]
-    (let [handler (test-system/construct-handler-for-users authorisation-id contacts)
+    (let [handler (test-system/construct-handler-for-user authorisation-id contacts)
           save-contact-response (test-system/make-request handler save-contact-request)
           contacts-list-response (test-system/make-request handler contacts-list-request)]
       (is (saving-contact-redirects-to-contacts-list? save-contact-response))
@@ -100,7 +100,7 @@
                                              (hash-map :request-method :post :form-params)
                                              (request/authorised-request-generator authorisation-id sut-path))]
     (let [invalid-contact-response (-> authorisation-id
-                                       (test-system/construct-handler-for-users contacts)
+                                       (test-system/construct-handler-for-user contacts)
                                        (test-system/make-request invalid-contact-request))]
       (saving-contact-results-in-client-error? invalid-contact-response)
       (original-data-is-displayed? invalid-contact invalid-contact-response)

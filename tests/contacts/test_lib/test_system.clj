@@ -20,10 +20,19 @@
     (run! (fn [contact] (contacts-storage/create contacts-storage contact)) contacts)
     (app/handler (oracle/authorization nil) contacts-storage)))
 
-(defn construct-handler-for-users [authorisation-id contacts]
-  (let [data-storage (oracle/data-storage)
-        {:keys [user-id]} (users-storage/->user data-storage authorisation-id)]
-    (run! (fn [contact] (contacts-storage/create-for-user data-storage user-id contact)) contacts)
+(defn- store-data [data-storage authorisation-id contacts]
+  (let [{:keys [user-id]} (users-storage/->user data-storage authorisation-id)]
+    (run! (fn [contact] (contacts-storage/create-for-user data-storage user-id contact)) contacts)))
+
+(defn construct-handler-for-user [authorisation-id contacts]
+  (let [data-storage (oracle/data-storage)]
+    (store-data data-storage authorisation-id contacts)
+    (app/handler (oracle/authorization data-storage) data-storage)))
+
+(defn construct-handler-for-users [authorisation-ids contacts]
+  (let [data-storage (oracle/data-storage)]
+    (run! (fn [[authorisation-id contacts]] (store-data data-storage authorisation-id contacts))
+          (map vector authorisation-ids contacts))
     (app/handler (oracle/authorization data-storage) data-storage)))
 
 (defn make-request [handler request]
