@@ -4,11 +4,11 @@
             [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
             [contacts.system.contacts-storage :as contacts-storage]
-            [contacts.system.users-storage :as users-storage]
             [database]
     ;; Include this to side-step a bug in refresh
             [idle.multiset.api]
             [malli.generator]
+            [next.jdbc :as jdbc]
             [potemkin]
             [ragtime.next-jdbc]
             [ragtime.repl]
@@ -19,13 +19,12 @@
   [clojure.repl.deps sync-deps]
   [com.stuartsierra.component.repl reset system])
 
-(defn populate-database [system authorisation-id]
+(defn populate-database [system user-id]
   (run!
     (fn [contact]
-      (let [{:keys [user-id]} (users-storage/->user (get-in system [:users-storage :users-storage]) authorisation-id)]
-        (-> system
-            (get-in [:contacts-storage :contacts-storage])
-            (contacts-storage/create user-id contact))))
+      (-> system
+          (get-in [:contacts-storage :contacts-storage])
+          (contacts-storage/create user-id contact)))
     (malli.generator/generate contacts-storage/contacts-schema)))
 
 (defn empty-database [system]
@@ -46,7 +45,9 @@
 
 (comment
   (reset)
-  (populate-database system "")
+
+  (def users (jdbc/execute! (get-in system [:data-source :data-source]) ["select user_id from users"]))
+  (populate-database system (:user-id (first users)))
 
   (hard-reset)
   (empty-database system)
