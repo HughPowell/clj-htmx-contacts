@@ -1,10 +1,10 @@
 (ns contacts.test-lib.users
-  (:require [clojure.test.check.generators :as generators]))
+  (:require [clojure.test.check.generators :as generators]
+            [contacts.system.auth :as auth]
+            [malli.generator]))
 
 (def authorisation-id-generator
-  (generators/such-that seq generators/string-alphanumeric))
+  (malli.generator/generator auth/authorisation-id-schema))
 
 (def two-plus-authorisation-ids-generator
-  (->> authorisation-id-generator
-       (generators/vector-distinct)
-       (generators/such-that (fn [authorisation-ids] (>= (count authorisation-ids) 2)))))
+  (generators/vector-distinct authorisation-id-generator {:min-elements 2}))
