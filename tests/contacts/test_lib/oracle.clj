@@ -57,6 +57,9 @@
             (recur (str (random-uuid)))
             (swap! store update-in [user-id :contacts] assoc proposed-id (assoc contact :id proposed-id))))
         this)
+      (contacts-storage/update-for-user* [this user-id contact]
+        (swap! store update-in [user-id :contacts] assoc (:id contact) contact)
+        this)
       (contacts-storage/delete-for-user* [this user-id contact-id]
         (swap! store update-in [user-id :contacts] dissoc contact-id)
         this)

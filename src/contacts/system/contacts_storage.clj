@@ -136,6 +136,7 @@
 (defprotocol ByUserContactsStorage
   (retrieve-for-user* [this user-id] [this user-id contact-id])
   (create-for-user* [this user-id contact])
+  (update-for-user* [this user-id contact])
   (delete-for-user* [this user-id contact-id]))
 
 (defn retrieve-for-user
@@ -150,6 +151,11 @@
   (->> contact
        (schemas/coerce new-contact-schema)
        (create-for-user* contacts-storage user-id)))
+
+(defn update-for-user [contacts-storage user-id contact]
+  (->> contact
+       (schemas/coerce existing-contact-schema)
+       (update-for-user* contacts-storage user-id)))
 
 (defn delete-for-user [contacts-storage user-id contact-id]
   (delete-for-user* contacts-storage user-id contact-id))

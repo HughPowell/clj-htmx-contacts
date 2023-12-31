@@ -71,13 +71,18 @@
                                 [true (merge
                                         updates
                                         {:validation-errors (malli/explain schema contact)})])))))
-    :exists? (fn [{:keys [request]}]
-               (if-let [contact (storage/retrieve contacts-storage (get-in request [:params :id]))]
-                 [true {:original-contact contact}]
-                 false))
+    :exists? (fn [{:keys [request user]}]
+               (let [contact-id (get-in request [:params :id])]
+                 (if-let [contact (if user
+                                    (storage/retrieve-for-user contacts-storage (:user-id user) contact-id)
+                                    (storage/retrieve contacts-storage contact-id))]
+                   [true {:original-contact contact}]
+                   false)))
     :can-post-to-missing? false
-    :post! (fn [{:keys [new-contact]}]
-             (storage/update contacts-storage new-contact))
+    :post! (fn [{:keys [new-contact user]}]
+             (if user
+               (storage/update-for-user contacts-storage (:user-id user) new-contact)
+               (storage/update contacts-storage new-contact)))
     :post-redirect? true
     :location "/contacts"
     :handle-see-other (representation/ring-response
