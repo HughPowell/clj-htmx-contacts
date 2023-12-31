@@ -1,0 +1,3 @@
+{:linters {:line-length {:max-line-length 120}
+           :unresolved-var {:exclude [hiccup.form hiccup.element contacts.lib.html]}
+           :unresolved-symbol {:exclude [(hiccup.def/defelem [search-field value])]}}}
