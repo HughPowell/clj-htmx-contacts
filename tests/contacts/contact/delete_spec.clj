@@ -44,7 +44,6 @@
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
-                contacts-request (request/generator authorisation-id contacts-list-path)
                 existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 contact-ids (generators/return (set (map :id existing-contacts)))
                 id (generators/such-that

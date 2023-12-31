@@ -139,5 +139,4 @@
       (Runtime/getRuntime)
       (Thread. ^Runnable #(component/stop-system system)))))
 
-(comment
-  (user/reset-app))
+(comment)

@@ -1,6 +1,7 @@
 (ns contacts.contacts
   (:refer-clojure :exclude [find])
   (:require [clojure.string :as string]
+            [contacts.lib.html :as html]
             [contacts.lib.page :as page]
             [contacts.system.contacts-storage :as contacts-storage]
             [hiccup.element :as element]
@@ -22,7 +23,7 @@
 (defn- search-form [current-search]
   (form/form-to {:class "tool-bar"} [:get "/contacts"]
                 (form/label "search" "Search Term")
-                (page/search-field "query" current-search)
+                (html/search-field "query" current-search)
                 (form/submit-button "Search")))
 
 (defn- table [contacts]

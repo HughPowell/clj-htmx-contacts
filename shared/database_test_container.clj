@@ -1,9 +1,7 @@
 (ns database-test-container
   (:require [clj-test-containers.core :as test-containers]
-            [clojure.test :refer :all]
             [contacts.system.data-migrations :as data-migrations]
             [honey.sql :as sql]
-            [honey.sql.helpers :as sql.helpers]
             [next.jdbc :as jdbc]
             [ragtime.core :as ragtime]
             [ragtime.next-jdbc]

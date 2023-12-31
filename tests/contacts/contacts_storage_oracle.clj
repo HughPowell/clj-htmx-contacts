@@ -74,7 +74,8 @@
                 index-%s (index-%-per-action-generator actions)]
             (with-open [connection (database/reset)]
               (let [sut (contacts-storage/contacts-storage connection)
-                    {sut-user-id :user-id} (users-storage/->user (users-storage/users-storage connection) authorisation-id)
+                    {sut-user-id :user-id} (users-storage/->user (users-storage/users-storage connection)
+                                                                 authorisation-id)
                     oracle (oracle/data-storage)
                     {oracle-user-id :user-id} (users-storage/->user oracle authorisation-id)]
                 (run! (fn [contact] (create-contact sut sut-user-id oracle oracle-user-id contact)) initial-contacts)

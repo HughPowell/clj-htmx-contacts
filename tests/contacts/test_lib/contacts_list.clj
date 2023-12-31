@@ -1,11 +1,11 @@
 (ns contacts.test-lib.contacts-list
-  (:require [clojure.test :refer :all]
-            [clojure.test.check.generators :as generators]
+  (:require [clojure.test.check.generators :as generators]
             [contacts.system.contacts-storage :as contacts-storage]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
-            [idle.multiset.api :as mset]))
+            [idle.multiset.api :as mset]
+            [malli.generator]))
 
 (def contacts-list-generator
   (->> contacts-storage/new-contact-schema

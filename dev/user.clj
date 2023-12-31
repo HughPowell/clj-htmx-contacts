@@ -4,7 +4,7 @@
             [com.stuartsierra.component.repl :as component.repl]
             [contacts.system.app :as app]
             [contacts.system.contacts-storage :as contacts-storage]
-            [contacts.system.data-migrations :as data-migrations]
+            [contacts.system.users-storage :as users-storage]
             [database]
     ;; Include this to side-step a bug in refresh
             [idle.multiset.api]
@@ -19,12 +19,13 @@
   [clojure.repl.deps sync-deps]
   [com.stuartsierra.component.repl reset system])
 
-(defn populate-database [system]
+(defn populate-database [system authorisation-id]
   (run!
     (fn [contact]
-      (-> system
-          (get-in [:contacts-storage :contacts-storage])
-          (contacts-storage/create contact)))
+      (let [{:keys [user-id]} (users-storage/->user (get-in system [:users-storage :users-storage]) authorisation-id)]
+        (-> system
+            (get-in [:contacts-storage :contacts-storage])
+            (contacts-storage/create user-id contact))))
     (malli.generator/generate contacts-storage/contacts-schema)))
 
 (defn empty-database [system]
@@ -45,7 +46,7 @@
 
 (comment
   (reset)
-  (populate-database system)
+  (populate-database system "")
 
   (hard-reset)
   (empty-database system)
