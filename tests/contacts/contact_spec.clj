@@ -7,6 +7,7 @@
             [contacts.test-lib.request :as request]
             [contacts.test-lib.test-system :as test-system]
             [contacts.system.contacts-storage :as contacts-storage]
+            [contacts.test-lib.users :as users]
             [malli.generator :as malli.generator]
             [net.cgrand.enlive-html :as enlive]))
 
@@ -28,13 +29,12 @@
     (is (string/includes? edit-link (:id contact)))))
 
 (deftest retrieving-a-contact-displays-it
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                handler (generators/return (test-system/construct-handler contacts))
-                contact (contacts-list/nth-contact-generator handler)
-                request (request/generator (format sut-path-format (:id contact)))]
-    (let [response (-> contacts
-                       (test-system/construct-handler)
-                       (test-system/make-request request))]
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/non-empty-contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                contact (contacts-list/nth-contact-generator handler authorisation-id)
+                request (request/authorised-request-generator authorisation-id (format sut-path-format (:id contact)))]
+    (let [response (test-system/make-request handler request)]
       (is (successfully-returns-html? response))
       (is (contact-is-rendered? contact response)))))
 
@@ -43,8 +43,9 @@
   (is (= 404 status)))
 
 (deftest non-existent-contact-not-found
-  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
-                handler (generators/return (test-system/construct-handler contacts))
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
                 existing-contacts (contacts-list/existing-contacts-generator handler)
                 id (generators/such-that
                      (fn [id]
@@ -52,11 +53,11 @@
                          (seq id)
                          (not (contains? (set (map :id existing-contacts)) id))))
                      generators/string-alphanumeric)
-                request (request/generator (format sut-path-format id))]
-    (let [response (-> contacts
-                       (test-system/construct-handler)
-                       (test-system/make-request request))]
+                request (request/authorised-request-generator authorisation-id (format sut-path-format id))]
+    (let [response (test-system/make-request handler request)]
       (is (not-found-html? response)))))
+
+;; TODO Fail to retrieve other user's contact
 
 (comment
   (retrieving-a-contact-displays-it)

@@ -22,11 +22,13 @@
 
 (defn resource [default contacts-storage]
   (liberator/resource default
-                      :allowed-methods [:get]
-                      :exists? (fn [{:keys [request]}]
-                                 (if-let [contact (->> (get-in request [:params :id])
-                                                       (contacts-storage/retrieve contacts-storage))]
-                                   [true {:contact contact}]
-                                   false))
-                      :handle-ok (fn [{:keys [contact] :as ctx}]
-                                   (render ctx contact))))
+    :allowed-methods [:get]
+    :exists? (fn [{:keys [request user]}]
+               (let [contact-id (get-in request [:params :id])]
+                 (if-let [contact (if user
+                                    (contacts-storage/retrieve-for-user contacts-storage (:user-id user) contact-id)
+                                    (contacts-storage/retrieve contacts-storage contact-id))]
+                   [true {:contact contact}]
+                   false)))
+    :handle-ok (fn [{:keys [contact] :as ctx}]
+                 (render ctx contact))))

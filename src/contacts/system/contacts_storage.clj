@@ -134,13 +134,16 @@
 (defn contacts-storage-component [] (map->ContactsStorageComponent {}))
 
 (defprotocol ByUserContactsStorage
-  (retrieve-for-user* [this user-id])
+  (retrieve-for-user* [this user-id] [this user-id contact-id])
   (create-for-user* [this user-id contact]))
 
 (defn retrieve-for-user
   ([contacts-storage user-id]
    (->> (retrieve-for-user* contacts-storage user-id)
-        (schemas/coerce contacts-schema))))
+        (schemas/coerce contacts-schema)))
+  ([contacts-storage user-id contact-id]
+   (->> (retrieve-for-user* contacts-storage user-id contact-id)
+        (schemas/coerce [:maybe existing-contact-schema]))) )
 
 (defn create-for-user [contacts-storage user-id contact]
   (->> contact

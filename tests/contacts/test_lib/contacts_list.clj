@@ -36,10 +36,12 @@
                                             (request/generator "/contacts"))]
      (generators/return (contacts-list handler contacts-list-request)))))
 
-(defn nth-contact-generator [handler]
-  (generators/let [contacts (existing-contacts-generator handler)
-                   contact-index (generators/large-integer* {:min 0 :max (dec (count contacts))})]
-    (generators/return (nth contacts contact-index))))
+(defn nth-contact-generator
+  ([handler] (nth-contact-generator handler nil))
+  ([handler authorisation-id]
+   (generators/let [contacts (existing-contacts-generator handler authorisation-id)
+                    contact-index (generators/large-integer* {:min 0 :max (dec (count contacts))})]
+     (generators/return (nth contacts contact-index)))))
 
 (defn strip-ids [contacts]
   (->> contacts

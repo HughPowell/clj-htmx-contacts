@@ -49,6 +49,8 @@
             (get-in [user-id :contacts])
             (vals)
             (set)))
+      (contacts-storage/retrieve-for-user* [_ user-id contact-id]
+        (get-in @store [user-id :contacts contact-id]))
       (contacts-storage/create-for-user* [this user-id contact]
         (loop [proposed-id (str (random-uuid))]
           (if (contains? (:contacts (get @store user-id)) proposed-id)
