@@ -22,12 +22,12 @@
            (generators/double* {:NaN? false :min 0 :max 1})))))
 
 (defn- create-contact [sut sut-user-id oracle oracle-user-id contact]
-  (contacts-storage/create-for-user sut sut-user-id contact)
-  (contacts-storage/create-for-user oracle oracle-user-id contact))
+  (contacts-storage/create sut sut-user-id contact)
+  (contacts-storage/create oracle oracle-user-id contact))
 
 (defn- find-equivalent-contact [storage user-id contact]
   (->> user-id
-       (contacts-storage/retrieve-for-user storage)
+       (contacts-storage/retrieve storage)
        (filter (fn [contact']
                  (= (dissoc contact' :id)
                     (dissoc contact :id))))
@@ -38,27 +38,27 @@
     (nth seq-s (* index-% (count seq-s)))))
 
 (defn- retrieve-contact [sut sut-user-id oracle oracle-user-id index-%]
-  (when-let [oracle-contact-to-retrieve (rand-% (contacts-storage/retrieve-for-user oracle oracle-user-id) index-%)]
+  (when-let [oracle-contact-to-retrieve (rand-% (contacts-storage/retrieve oracle oracle-user-id) index-%)]
     (let [sut-contact-to-retrieve (find-equivalent-contact sut sut-user-id oracle-contact-to-retrieve)]
       (is (=
             (-> oracle
-                (contacts-storage/retrieve-for-user oracle-user-id (:id oracle-contact-to-retrieve))
+                (contacts-storage/retrieve oracle-user-id (:id oracle-contact-to-retrieve))
                 (dissoc :id))
             (-> sut
-                (contacts-storage/retrieve-for-user sut-user-id (:id sut-contact-to-retrieve))
+                (contacts-storage/retrieve sut-user-id (:id sut-contact-to-retrieve))
                 (dissoc :id)))))))
 
 (defn- update-contact [sut sut-user-id oracle oracle-user-id update index-%]
-  (when-let [oracle-contact-to-update (rand-% (contacts-storage/retrieve-for-user oracle oracle-user-id) index-%)]
-    (contacts-storage/update-for-user oracle oracle-user-id (merge oracle-contact-to-update update))
+  (when-let [oracle-contact-to-update (rand-% (contacts-storage/retrieve oracle oracle-user-id) index-%)]
+    (contacts-storage/update oracle oracle-user-id (merge oracle-contact-to-update update))
     (let [sut-contact-to-update (find-equivalent-contact sut sut-user-id oracle-contact-to-update)]
-      (contacts-storage/update-for-user sut sut-user-id (merge sut-contact-to-update update)))))
+      (contacts-storage/update sut sut-user-id (merge sut-contact-to-update update)))))
 
 (defn- delete-contact [sut sut-user-id oracle oracle-user-id index-%]
-  (when-let [oracle-contact-to-delete (rand-% (contacts-storage/retrieve-for-user oracle oracle-user-id) index-%)]
-    (contacts-storage/delete-for-user oracle oracle-user-id (:id oracle-contact-to-delete))
+  (when-let [oracle-contact-to-delete (rand-% (contacts-storage/retrieve oracle oracle-user-id) index-%)]
+    (contacts-storage/delete oracle oracle-user-id (:id oracle-contact-to-delete))
     (let [sut-contact-to-delete (find-equivalent-contact sut sut-user-id oracle-contact-to-delete)]
-      (contacts-storage/delete-for-user sut sut-user-id (:id sut-contact-to-delete)))))
+      (contacts-storage/delete sut sut-user-id (:id sut-contact-to-delete)))))
 
 (deftest ensure-contacts-storage-matches-oracle
   (checking "" [authorisation-id users/authorisation-id-generator
@@ -71,7 +71,7 @@
                 contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
-      (let [sut (contacts-storage/by-user-contacts-storage connection)
+      (let [sut (contacts-storage/contacts-storage connection)
             {sut-user-id :user-id} (users-storage/->user (users-storage/users-storage connection) authorisation-id)
             oracle (oracle/data-storage)
             {oracle-user-id :user-id} (users-storage/->user oracle authorisation-id)]
@@ -89,8 +89,8 @@
                 :update (update-contact sut sut-user-id oracle oracle-user-id (first contact-updates) index-%)
                 :delete (delete-contact sut sut-user-id oracle oracle-user-id index-%))
 
-              (is (= (contacts-list/strip-ids (contacts-storage/retrieve-for-user oracle oracle-user-id))
-                     (contacts-list/strip-ids (contacts-storage/retrieve-for-user sut sut-user-id))))
+              (is (= (contacts-list/strip-ids (contacts-storage/retrieve oracle oracle-user-id))
+                     (contacts-list/strip-ids (contacts-storage/retrieve sut sut-user-id))))
 
               (recur
                 (rest actions)
@@ -99,29 +99,29 @@
                 (if (#{:retrieve :update :delete} action) (rest index-%s) index-%s)))))))))
 
 (defn- ensure-stable-ids-on-create [sut user-id contact]
-  (let [original-ids (set (map :id (contacts-storage/retrieve-for-user sut user-id)))]
-    (contacts-storage/create-for-user sut user-id contact)
-    (let [latest-ids (set (map :id (contacts-storage/retrieve-for-user sut user-id)))]
+  (let [original-ids (set (map :id (contacts-storage/retrieve sut user-id)))]
+    (contacts-storage/create sut user-id contact)
+    (let [latest-ids (set (map :id (contacts-storage/retrieve sut user-id)))]
       (is (= 1 (count (set/difference latest-ids original-ids)))
           (format "Latest IDs: %s; Original IDs: %s" (str latest-ids) (str original-ids))))))
 
 (defn- ensure-stable-ids-on-update [sut user-id update index-%]
-  (when-let [original-contacts (seq (contacts-storage/retrieve-for-user sut user-id))]
+  (when-let [original-contacts (seq (contacts-storage/retrieve sut user-id))]
     (let [contact-to-update (rand-% original-contacts index-%)]
-      (contacts-storage/update-for-user sut user-id (merge contact-to-update update))
+      (contacts-storage/update sut user-id (merge contact-to-update update))
       (is (= (set (map :id original-contacts))
-             (set (map :id (contacts-storage/retrieve-for-user sut user-id))))))))
+             (set (map :id (contacts-storage/retrieve sut user-id))))))))
 
 (defn- ensure-stable-ids-on-delete [sut user-id index-%]
-  (when-let [original-contacts (seq (contacts-storage/retrieve-for-user sut user-id))]
+  (when-let [original-contacts (seq (contacts-storage/retrieve sut user-id))]
     (let [contact-to-delete (rand-% original-contacts index-%)]
-      (contacts-storage/delete-for-user sut user-id (:id contact-to-delete))
+      (contacts-storage/delete sut user-id (:id contact-to-delete))
       (is (= #{(:id contact-to-delete)}
              (set/difference (set (map :id original-contacts))
-                             (set (map :id (contacts-storage/retrieve-for-user sut user-id)))))))))
+                             (set (map :id (contacts-storage/retrieve sut user-id)))))))))
 
 (defn- ensure-ids-are-unique [sut user-id]
-  (let [all-contact-ids (map :id (contacts-storage/retrieve-for-user sut user-id))]
+  (let [all-contact-ids (map :id (contacts-storage/retrieve sut user-id))]
     (is (= (sort (set all-contact-ids))
            (sort all-contact-ids)))))
 
@@ -136,9 +136,9 @@
                 contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
-      (let [sut (contacts-storage/by-user-contacts-storage connection)
+      (let [sut (contacts-storage/contacts-storage connection)
             {:keys [user-id]} (users-storage/->user (users-storage/users-storage connection) authorisation-id)]
-        (run! (fn [contact] (contacts-storage/create-for-user sut user-id contact)) initial-contacts)
+        (run! (fn [contact] (contacts-storage/create sut user-id contact)) initial-contacts)
         (loop [actions actions
                new-contacts new-contacts
                contact-updates contact-updates

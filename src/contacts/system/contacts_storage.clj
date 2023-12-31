@@ -59,34 +59,34 @@
      :down {:alter-table :contacts
             :raw         (format "DROP CONSTRAINT %s" constraint-name)}}))
 
-(defprotocol ByUserContactsStorage
-  (retrieve-for-user* [this user-id] [this user-id contact-id])
-  (create-for-user* [this user-id contact])
-  (update-for-user* [this user-id contact])
-  (delete-for-user* [this user-id contact-id]))
+(defprotocol ContactsStorage
+  (retrieve* [this user-id] [this user-id contact-id])
+  (create* [this user-id contact])
+  (update* [this user-id contact])
+  (delete* [this user-id contact-id]))
 
-(defn by-user-contacts-storage [data-source]
-  (reify ByUserContactsStorage
-    (retrieve-for-user* [_ user-id]
+(defn contacts-storage [data-source]
+  (reify ContactsStorage
+    (retrieve* [_ user-id]
       (let [select-all (-> (sql.helpers/select :*)
                            (sql.helpers/from :contacts)
                            (sql.helpers/where [:= :user-id user-id])
                            (sql/format))]
         (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
              (set))))
-    (retrieve-for-user* [_ user-id id]
+    (retrieve* [_ user-id id]
       (let [select-all (-> (sql.helpers/select :*)
                            (sql.helpers/from :contacts)
                            (sql.helpers/where [:= :user-id user-id])
                            (sql.helpers/where [:= :id id])
                            (sql/format))]
         (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
-    (create-for-user* [this user-id contact]
+    (create* [this user-id contact]
       (jdbc/execute! data-source (-> (sql.helpers/insert-into :contacts)
                                      (sql.helpers/values [(assoc contact :user-id user-id)])
                                      (sql/format)))
       this)
-    (update-for-user* [this user-id contact]
+    (update* [this user-id contact]
       (let [update (-> (sql.helpers/update :contacts)
                        (sql.helpers/set (dissoc contact :id))
                        (sql.helpers/where [:= :user-id user-id])
@@ -94,7 +94,7 @@
                        (sql/format))]
         (jdbc/execute! data-source update))
       this)
-    (delete-for-user* [this user-id contact-id]
+    (delete* [this user-id contact-id]
       (let [delete (-> (sql.helpers/delete-from :contacts)
                        (sql.helpers/where [:= :user-id user-id])
                        (sql.helpers/where [:= :id contact-id])
@@ -102,31 +102,31 @@
         (jdbc/execute! data-source delete))
       this)))
 
-(defn retrieve-for-user
+(defn retrieve
   ([contacts-storage user-id]
-   (->> (retrieve-for-user* contacts-storage user-id)
+   (->> (retrieve* contacts-storage user-id)
         (schemas/coerce contacts-schema)))
   ([contacts-storage user-id contact-id]
-   (->> (retrieve-for-user* contacts-storage user-id contact-id)
+   (->> (retrieve* contacts-storage user-id contact-id)
         (schemas/coerce [:maybe existing-contact-schema]))) )
 
-(defn create-for-user [contacts-storage user-id contact]
+(defn create [contacts-storage user-id contact]
   (->> contact
        (schemas/coerce new-contact-schema)
-       (create-for-user* contacts-storage user-id)))
+       (create* contacts-storage user-id)))
 
-(defn update-for-user [contacts-storage user-id contact]
+(defn update [contacts-storage user-id contact]
   (->> contact
        (schemas/coerce existing-contact-schema)
-       (update-for-user* contacts-storage user-id)))
+       (update* contacts-storage user-id)))
 
-(defn delete-for-user [contacts-storage user-id contact-id]
-  (delete-for-user* contacts-storage user-id contact-id))
+(defn delete [contacts-storage user-id contact-id]
+  (delete* contacts-storage user-id contact-id))
 
 (defrecord ContactsStorageComponent [data-source]
   component/Lifecycle
   (start [component]
-    (assoc component :contacts-storage (by-user-contacts-storage (:data-source data-source))))
+    (assoc component :contacts-storage (contacts-storage (:data-source data-source))))
   (stop [component]
     (assoc component :contacts-storage nil)))
 

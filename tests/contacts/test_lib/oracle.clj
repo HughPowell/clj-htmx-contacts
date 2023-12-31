@@ -18,24 +18,24 @@
                                       (map :contacts)
                                       (every? contact-keys-match-contact-ids)))))
     (reify
-      contacts-storage/ByUserContactsStorage
-      (contacts-storage/retrieve-for-user* [_ user-id]
+      contacts-storage/ContactsStorage
+      (contacts-storage/retrieve* [_ user-id]
         (-> @store
             (get-in [user-id :contacts])
             (vals)
             (set)))
-      (contacts-storage/retrieve-for-user* [_ user-id contact-id]
+      (contacts-storage/retrieve* [_ user-id contact-id]
         (get-in @store [user-id :contacts contact-id]))
-      (contacts-storage/create-for-user* [this user-id contact]
+      (contacts-storage/create* [this user-id contact]
         (loop [proposed-id (str (random-uuid))]
           (if (contains? (:contacts (get @store user-id)) proposed-id)
             (recur (str (random-uuid)))
             (swap! store update-in [user-id :contacts] assoc proposed-id (assoc contact :id proposed-id))))
         this)
-      (contacts-storage/update-for-user* [this user-id contact]
+      (contacts-storage/update* [this user-id contact]
         (swap! store update-in [user-id :contacts] assoc (:id contact) contact)
         this)
-      (contacts-storage/delete-for-user* [this user-id contact-id]
+      (contacts-storage/delete* [this user-id contact-id]
         (swap! store update-in [user-id :contacts] dissoc contact-id)
         this)
       users-storage/UsersStorage

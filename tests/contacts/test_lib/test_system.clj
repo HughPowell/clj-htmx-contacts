@@ -17,7 +17,7 @@
 
 (defn- store-data [data-storage authorisation-id contacts]
   (let [{:keys [user-id]} (users-storage/->user data-storage authorisation-id)]
-    (run! (fn [contact] (contacts-storage/create-for-user data-storage user-id contact)) contacts)))
+    (run! (fn [contact] (contacts-storage/create data-storage user-id contact)) contacts)))
 
 (defn construct-handler-for-user [authorisation-id contacts]
   (let [data-storage (oracle/data-storage)]
