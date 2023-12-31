@@ -58,8 +58,11 @@
 
 (defn resource [defaults contacts-storage]
   (liberator/resource defaults
-                      :handle-ok (fn [{:keys [request] :as ctx}]
-                                   (let [contacts (contacts-storage/retrieve contacts-storage)
+                      :handle-ok (fn [{:keys [request user] :as ctx}]
+                                   (let [contacts (if user
+                                                    (contacts-storage/retrieve-for-user contacts-storage
+                                                                                        (:user-id user))
+                                                    (contacts-storage/retrieve contacts-storage))
                                          query (get-in request [:params :query])]
                                      (render
                                        ctx

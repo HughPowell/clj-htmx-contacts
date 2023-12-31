@@ -13,14 +13,28 @@
                           (malli.generator/generator contacts-storage/new-contact-schema)
                           opts)))
 
+(def contacts-list-generator
+  (->> contacts-storage/new-contact-schema
+       (malli.generator/generator)
+       (generators/vector)
+       (generators/fmap mset/multiset)))
+
+(def non-empty-contacts-list-generator
+  (->> contacts-list-generator
+       (generators/such-that seq)))
+
 (defn- contacts-list [handler contacts-list-request]
   (->> contacts-list-request
        (test-system/make-request handler)
        (html/rendered-contacts)))
 
-(defn existing-contacts-generator [handler]
-  (generators/let [contacts-list-request (request/generator "/contacts")]
-    (generators/return (contacts-list handler contacts-list-request))))
+(defn existing-contacts-generator
+  ([handler] (existing-contacts-generator handler nil))
+  ([handler authorisation-id]
+   (generators/let [contacts-list-request (if authorisation-id
+                                            (request/authorised-request-generator authorisation-id "/contacts")
+                                            (request/generator "/contacts"))]
+     (generators/return (contacts-list handler contacts-list-request)))))
 
 (defn nth-contact-generator [handler]
   (generators/let [contacts (existing-contacts-generator handler)

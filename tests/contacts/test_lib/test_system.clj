@@ -3,6 +3,7 @@
             [camel-snake-kebab.extras :as camel-snake-kebab.extras]
             [contacts.system.app :as app]
             [contacts.system.contacts-storage :as contacts-storage]
+            [contacts.system.users-storage :as users-storage]
             [contacts.test-lib.oracle :as oracle]
             [net.cgrand.enlive-html :as enlive])
   (:import (java.io StringReader)))
@@ -17,7 +18,13 @@
 (defn construct-handler [contacts]
   (let [contacts-storage (oracle/contacts-storage)]
     (run! (fn [contact] (contacts-storage/create contacts-storage contact)) contacts)
-    (app/handler (oracle/authorization) contacts-storage)))
+    (app/handler (oracle/authorization nil) contacts-storage)))
+
+(defn construct-handler-for-users [authorisation-id contacts]
+  (let [data-storage (oracle/data-storage)
+        {:keys [user-id]} (users-storage/->user data-storage authorisation-id)]
+    (run! (fn [contact] (contacts-storage/create-for-user data-storage user-id contact)) contacts)
+    (app/handler (oracle/authorization data-storage) data-storage)))
 
 (defn make-request [handler request]
   (let [request' (cond-> request

@@ -67,5 +67,19 @@
              (assoc :uri path))))
      (malli.generator/generator schema))))
 
+(defn authorised-request-generator
+  ([authorisation-id path] (authorised-request-generator authorisation-id path nil))
+  ([authorisation-id path overrides]
+   (generators/fmap
+     (fn [request]
+       (let [overrides' (cond-> overrides
+                          (:form-params overrides) (form-params->body)
+                          (:query-params overrides) (query-params->query-string))]
+         (-> request
+             (meta-merge/meta-merge overrides')
+             (assoc :uri path)
+             (assoc :authorisation-id authorisation-id))))
+     (malli.generator/generator schema))))
+
 (comment
   )

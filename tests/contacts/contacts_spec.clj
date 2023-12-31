@@ -8,19 +8,10 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.system.contacts-storage :as contacts-storage]
-            [idle.multiset.api :as mset]
-            [malli.generator :as malli.generator]))
+            [contacts.test-lib.users :as users]
+            [idle.multiset.api :as mset]))
 
 (def sut-path "/contacts")
-
-(defn- request-generator
-  ([path] (request/generator path))
-  ([path search] (request-generator path search {}))
-  ([path search opts]
-   (->> {:query-params {:query search}}
-        (merge opts)
-        (request/generator path))))
 
 (defn- substring-generator [s]
   (generators/let [start (generators/choose 0 (count s))
@@ -38,10 +29,11 @@
      (mset/multiset contacts)))
 
 (deftest all-contacts-returned-when-no-query
-  (checking "" [contacts (generators/such-that seq (contacts-list/new-contacts-generator))
-                request (request-generator sut-path)]
-    (let [response (-> contacts
-                       (test-system/construct-handler)
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/non-empty-contacts-list-generator
+                request (request/authorised-request-generator authorisation-id sut-path)]
+    (let [response (-> authorisation-id
+                       (test-system/construct-handler-for-users contacts)
                        (test-system/make-request request))]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
@@ -66,9 +58,10 @@
                      (set contacts)))))
 
 (deftest contacts-that-match-search-are-rendered
-  (checking "" [contacts (malli.generator/generator contacts-storage/contacts-schema)
-                handler (generators/return (test-system/construct-handler contacts))
-                existing-contacts (contacts-list/existing-contacts-generator handler)
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 string' (if (seq contacts)
                           (generators/one-of
                             [(->> existing-contacts
@@ -77,7 +70,9 @@
                              generators/string-alphanumeric])
                           generators/string-alphanumeric)
                 search (substring-generator string')
-                request (request-generator sut-path search)]
+                request (request/authorised-request-generator authorisation-id
+                                                              sut-path
+                                                              {:query-params {:query search}})]
     (let [response (test-system/make-request handler request)]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
