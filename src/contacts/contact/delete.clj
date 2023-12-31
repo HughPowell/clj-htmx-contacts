@@ -10,15 +10,11 @@
     :allowed-methods [:post]
     :exists? (fn [{:keys [request user]}]
                (if-let [contact (let [contact-id (get-in request [:params :id]) ]
-                                  (if user
-                                   (storage/retrieve-for-user contacts-storage (:user-id user) contact-id)
-                                   (storage/retrieve contacts-storage contact-id)))]
+                                  (storage/retrieve-for-user contacts-storage (:user-id user) contact-id))]
                  [true {:contact contact}]
                  false))
     :post! (fn [{:keys [contact user]}]
-             (if user
-               (storage/delete-for-user contacts-storage (:user-id user) (:id contact))
-               (storage/delete contacts-storage (:id contact))))
+             (storage/delete-for-user contacts-storage (:user-id user) (:id contact)))
     :post-redirect? true
     :can-post-to-missing? false
     :location "/contacts"

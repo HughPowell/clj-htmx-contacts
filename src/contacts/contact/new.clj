@@ -72,9 +72,7 @@
     :post-redirect? true
     :location "/contacts"
     :post! (fn [{:keys [contact user]}]
-             (if user
-               (storage/create-for-user contacts-storage (:user-id user) contact)
-               (storage/create contacts-storage contact)))
+             (storage/create-for-user contacts-storage (:user-id user) contact))
     :handle-see-other (representation/ring-response
                         {:flash "New Contact Created!"})
     :handle-malformed (fn [{:keys [contact validation-errors] :as ctx}]

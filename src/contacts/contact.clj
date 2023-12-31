@@ -25,9 +25,7 @@
     :allowed-methods [:get]
     :exists? (fn [{:keys [request user]}]
                (let [contact-id (get-in request [:params :id])]
-                 (if-let [contact (if user
-                                    (contacts-storage/retrieve-for-user contacts-storage (:user-id user) contact-id)
-                                    (contacts-storage/retrieve contacts-storage contact-id))]
+                 (if-let [contact (contacts-storage/retrieve-for-user contacts-storage (:user-id user) contact-id)]
                    [true {:contact contact}]
                    false)))
     :handle-ok (fn [{:keys [contact] :as ctx}]

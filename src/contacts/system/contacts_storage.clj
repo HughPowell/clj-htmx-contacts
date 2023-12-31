@@ -33,12 +33,6 @@
 
 ;; Persistence
 
-(defprotocol ContactsStorage
-  (retrieve* [this] [this id])
-  (create* [this contact])
-  (update* [this contact])
-  (delete* [this id]))
-
 (def contacts-table
   {:up   (-> (sql.helpers/create-table :contacts :if-not-exists)
              (sql.helpers/with-columns [[:id :varchar :primary-key [:default [:raw "gen_random_uuid ()"]]]
@@ -64,74 +58,6 @@
                                        "ON DELETE CASCADE"])}
      :down {:alter-table :contacts
             :raw         (format "DROP CONSTRAINT %s" constraint-name)}}))
-
-(defn- contacts-insert [contacts]
-  (-> (sql.helpers/insert-into :contacts)
-      (sql.helpers/values (seq contacts))
-      (sql/format)))
-
-(defn contacts-storage [data-source]
-  (reify ContactsStorage
-    (retrieve* [_]
-      (let [select-all (-> (sql.helpers/select :*)
-                           (sql.helpers/from :contacts)
-                           (sql/format))]
-        (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
-             (set))))
-    (retrieve* [_ id]
-      (let [select-all (-> (sql.helpers/select :*)
-                           (sql.helpers/from :contacts)
-                           (sql.helpers/where [:= :id id])
-                           (sql/format))]
-        (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
-    (create* [this contact]
-      (jdbc/execute! data-source (contacts-insert [contact]))
-      this)
-    (update* [this contact]
-      (let [update (-> (sql.helpers/update :contacts)
-                       (sql.helpers/set (dissoc contact :id))
-                       (sql.helpers/where [:= :id (:id contact)])
-                       (sql/format))]
-        (jdbc/execute! data-source update))
-      this)
-    (delete* [this id]
-      (let [delete (-> (sql.helpers/delete-from :contacts)
-                       (sql.helpers/where [:= :id id])
-                       (sql/format))]
-        (jdbc/execute! data-source delete))
-      this)))
-
-(defn retrieve
-  ([contacts-storage]
-   (->> contacts-storage
-        (retrieve*)
-        (schemas/coerce contacts-schema)))
-  ([contacts-storage id]
-   (->> id
-        (retrieve* contacts-storage)
-        (schemas/coerce [:maybe existing-contact-schema]))))
-
-(defn create [contacts-storage contact]
-  (->> contact
-       (schemas/coerce new-contact-schema)
-       (create* contacts-storage)))
-
-(defn update [contacts-storage contact]
-  (->> contact
-       (schemas/coerce existing-contact-schema)
-       (update* contacts-storage)))
-
-(defn delete [contacts-storage id]
-  (delete* contacts-storage id))
-
-(defrecord ContactsStorageComponent [data-source]
-  component/Lifecycle
-  (start [component]
-    (assoc component :contacts-storage (contacts-storage (:data-source data-source))))
-  (stop [component]
-    (assoc component :contacts-storage nil)))
-
-(defn contacts-storage-component [] (map->ContactsStorageComponent {}))
 
 (defprotocol ByUserContactsStorage
   (retrieve-for-user* [this user-id] [this user-id contact-id])
@@ -196,6 +122,15 @@
 
 (defn delete-for-user [contacts-storage user-id contact-id]
   (delete-for-user* contacts-storage user-id contact-id))
+
+(defrecord ContactsStorageComponent [data-source]
+  component/Lifecycle
+  (start [component]
+    (assoc component :contacts-storage (by-user-contacts-storage (:data-source data-source))))
+  (stop [component]
+    (assoc component :contacts-storage nil)))
+
+(defn contacts-storage-component [] (map->ContactsStorageComponent {}))
 
 (comment
   )
