@@ -139,6 +139,43 @@
   (update-for-user* [this user-id contact])
   (delete-for-user* [this user-id contact-id]))
 
+(defn by-user-contacts-storage [data-source]
+  (reify ByUserContactsStorage
+    (retrieve-for-user* [_ user-id]
+      (let [select-all (-> (sql.helpers/select :*)
+                           (sql.helpers/from :contacts)
+                           (sql.helpers/where [:= :user-id user-id])
+                           (sql/format))]
+        (->> (jdbc/execute! data-source select-all jdbc/unqualified-snake-kebab-opts)
+             (set))))
+    (retrieve-for-user* [_ user-id id]
+      (let [select-all (-> (sql.helpers/select :*)
+                           (sql.helpers/from :contacts)
+                           (sql.helpers/where [:= :user-id user-id])
+                           (sql.helpers/where [:= :id id])
+                           (sql/format))]
+        (jdbc/execute-one! data-source select-all jdbc/unqualified-snake-kebab-opts)))
+    (create-for-user* [this user-id contact]
+      (jdbc/execute! data-source (-> (sql.helpers/insert-into :contacts)
+                                     (sql.helpers/values [(assoc contact :user-id user-id)])
+                                     (sql/format)))
+      this)
+    (update-for-user* [this user-id contact]
+      (let [update (-> (sql.helpers/update :contacts)
+                       (sql.helpers/set (dissoc contact :id))
+                       (sql.helpers/where [:= :user-id user-id])
+                       (sql.helpers/where [:= :id (:id contact)])
+                       (sql/format))]
+        (jdbc/execute! data-source update))
+      this)
+    (delete-for-user* [this user-id contact-id]
+      (let [delete (-> (sql.helpers/delete-from :contacts)
+                       (sql.helpers/where [:= :user-id user-id])
+                       (sql.helpers/where [:= :id contact-id])
+                       (sql/format))]
+        (jdbc/execute! data-source delete))
+      this)))
+
 (defn retrieve-for-user
   ([contacts-storage user-id]
    (->> (retrieve-for-user* contacts-storage user-id)
