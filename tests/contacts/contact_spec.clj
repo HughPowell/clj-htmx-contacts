@@ -33,7 +33,7 @@
                 contacts contacts-list/non-empty-contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact (contacts-list/nth-contact-generator handler authorisation-id)
-                request (request/authorised-request-generator authorisation-id (format sut-path-format (:id contact)))]
+                request (request/generator authorisation-id (format sut-path-format (:id contact)))]
     (let [response (test-system/make-request handler request)]
       (is (successfully-returns-html? response))
       (is (contact-is-rendered? contact response)))))
@@ -53,7 +53,7 @@
                          (seq id)
                          (not (contains? (set (map :id existing-contacts)) id))))
                      generators/string-alphanumeric)
-                request (request/authorised-request-generator authorisation-id (format sut-path-format id))]
+                request (request/generator authorisation-id (format sut-path-format id))]
     (let [response (test-system/make-request handler request)]
       (is (not-found-html? response)))))
 
@@ -65,8 +65,8 @@
                 handler (generators/return (test-system/construct-handler-for-users authorisation-ids contacts))
                 owners-contacts (contacts-list/existing-contacts-generator handler owner-authorisation-id)
                 owners-contact (generators/elements owners-contacts)
-                request (request/authorised-request-generator accessor-authorisation-id
-                                                              (format sut-path-format (:id owners-contact)))]
+                request (request/generator accessor-authorisation-id
+                                           (format sut-path-format (:id owners-contact)))]
     (let [response (test-system/make-request handler request)]
       (is (not-found-html? response)))))
 

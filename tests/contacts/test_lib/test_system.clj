@@ -15,11 +15,6 @@
   (cond-> request
     (:body request) (update :body enlive/html-snippet)))
 
-(defn construct-handler [contacts]
-  (let [contacts-storage (oracle/contacts-storage)]
-    (run! (fn [contact] (contacts-storage/create contacts-storage contact)) contacts)
-    (app/handler (oracle/authorization nil) contacts-storage)))
-
 (defn- store-data [data-storage authorisation-id contacts]
   (let [{:keys [user-id]} (users-storage/->user data-storage authorisation-id)]
     (run! (fn [contact] (contacts-storage/create-for-user data-storage user-id contact)) contacts)))

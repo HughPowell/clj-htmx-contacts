@@ -37,8 +37,8 @@
                 contacts contacts-list/non-empty-contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
-                update-request (request/authorised-request-generator authorisation-id
-                                                                     (format sut-path-format (:id contact-to-update)))]
+                update-request (request/generator authorisation-id
+                                                  (format sut-path-format (:id contact-to-update)))]
     (let [response (test-system/make-request handler update-request)]
       (contact-is-returned-as-html-ok? response)
       (form-contains-contact? contact-to-update response))))
@@ -59,12 +59,12 @@
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
                 contact-to-update (contacts-list/nth-contact-generator handler authorisation-id)
                 new-contact-data (malli.generator/generator sut/schema)
-                save-contact-request (request/authorised-request-generator
+                save-contact-request (request/generator
                                        authorisation-id
                                        (format sut-path-format (:id contact-to-update))
                                        {:request-method :post
                                         :form-params    new-contact-data})
-                contacts-list-request (request/authorised-request-generator authorisation-id contacts-list-path)]
+                contacts-list-request (request/generator authorisation-id contacts-list-path)]
     (let [save-contact-response (test-system/make-request handler save-contact-request)
           contacts-list-response (test-system/make-request handler contacts-list-request)]
       (is (updating-contact-redirects-to-contacts-list? save-contact-response))
@@ -115,7 +115,7 @@
                                        (fn [contact] (not (malli/validate sut/schema contact)))))
                 invalid-contact-request (->> invalid-contact
                                              (hash-map :request-method :post :form-params)
-                                             (request/authorised-request-generator
+                                             (request/generator
                                                authorisation-id
                                                (format sut-path-format (:id contact-to-update))))]
     (let [invalid-contact-response (test-system/make-request handler invalid-contact-request)]
@@ -137,9 +137,9 @@
                             (not (contains? (set (map :id existing-contacts)) id))))
                      generators/string-alphanumeric)
                 contact-data (malli.generator/generator contacts-storage/existing-contact-schema)
-                request (request/authorised-request-generator authorisation-id
-                                                              (format sut-path-format id)
-                                                              {:request-method :post
+                request (request/generator authorisation-id
+                                           (format sut-path-format id)
+                                           {:request-method :post
                                                                :form-params    contact-data})]
     (let [response (test-system/make-request handler request)]
       (non-existent-contact-not-found? response))))
@@ -153,9 +153,9 @@
                 owners-contacts (contacts-list/existing-contacts-generator handler owner-authorisation-id)
                 owners-contact (generators/elements owners-contacts)
                 contact-data (malli.generator/generator contacts-storage/existing-contact-schema)
-                update-request (request/authorised-request-generator accessor-authorisation-id
-                                                                     (format sut-path-format (:id owners-contact))
-                                                                     {:request-method :post
+                update-request (request/generator accessor-authorisation-id
+                                                  (format sut-path-format (:id owners-contact))
+                                                  {:request-method :post
                                                                       :form-params    contact-data})]
     (let [response (test-system/make-request handler update-request)]
       (is (non-existent-contact-not-found? response)))))

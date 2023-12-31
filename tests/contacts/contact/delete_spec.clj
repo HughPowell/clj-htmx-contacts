@@ -25,12 +25,12 @@
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
-                contacts-list-request (request/authorised-request-generator authorisation-id contacts-list-path)
+                contacts-list-request (request/generator authorisation-id contacts-list-path)
                 contact-to-delete (contacts-list/nth-contact-generator handler authorisation-id)
-                delete-contact-request (request/authorised-request-generator authorisation-id
-                                                                             (format sut-path-format
+                delete-contact-request (request/generator authorisation-id
+                                                          (format sut-path-format
                                                                                      (:id contact-to-delete))
-                                                                             {:request-method :post})]
+                                                          {:request-method :post})]
     (let [delete-contact-response (test-system/make-request handler delete-contact-request)
           contacts-list-response (test-system/make-request handler contacts-list-request)]
       (deleting-contact-redirects-to-contacts-list? delete-contact-response)
@@ -43,7 +43,7 @@
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
                 handler (generators/return (test-system/construct-handler-for-user authorisation-id contacts))
-                contacts-request (request/authorised-request-generator authorisation-id contacts-list-path)
+                contacts-request (request/generator authorisation-id contacts-list-path)
                 existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 contact-ids (generators/return (set (map :id existing-contacts)))
                 id (generators/such-that
@@ -51,9 +51,9 @@
                        (and (seq id)
                             (not (contains? contact-ids id))))
                      generators/string-alphanumeric)
-                delete-request (request/authorised-request-generator authorisation-id
-                                                                     (format sut-path-format id)
-                                                                     {:request-method :post})]
+                delete-request (request/generator authorisation-id
+                                                  (format sut-path-format id)
+                                                  {:request-method :post})]
     (let [response (test-system/make-request handler delete-request)]
       (non-existent-contact-not-found? response))))
 
@@ -65,9 +65,9 @@
                 handler (generators/return (test-system/construct-handler-for-users authorisation-ids contacts))
                 owners-contacts (contacts-list/existing-contacts-generator handler owner-authorisation-id)
                 owners-contact (generators/elements owners-contacts)
-                delete-request (request/authorised-request-generator accessor-authorisation-id
-                                                                     (format sut-path-format (:id owners-contact))
-                                                                     {:request-method :post})]
+                delete-request (request/generator accessor-authorisation-id
+                                                  (format sut-path-format (:id owners-contact))
+                                                  {:request-method :post})]
     (let [response (test-system/make-request handler delete-request)]
       (is (non-existent-contact-not-found? response)))))
 

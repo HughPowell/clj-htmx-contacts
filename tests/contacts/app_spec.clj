@@ -6,19 +6,21 @@
             [contacts.system.app :as app]
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.request :as request]
+            [contacts.test-lib.users :as users]
             [reitit.core :as reitit]))
 
 (defn- unsupported-media-type-response? [{:keys [status]}]
   (is (= 406 status)))
 
 (deftest non-text-html-content-type-not-supported
-  (checking "" [content-type (generators/such-that
+  (checking "" [authorisation-id users/authorisation-id-generator
+                content-type (generators/such-that
                                (fn [content-type]
                                  (not (#{"text/html" "text/*" "*/*"} (string/trim content-type))))
                                generators/string-alphanumeric)
-                request (request/generator "/" {:headers {"accept" content-type}})]
-    (let [response (-> #{}
-                       (test-system/construct-handler)
+                request (request/generator authorisation-id "/" {:headers {"accept" content-type}})]
+    (let [response (-> authorisation-id
+                       (test-system/construct-handler-for-user #{})
                        (test-system/make-request request))]
       (is (unsupported-media-type-response? response)))))
 
@@ -26,7 +28,8 @@
   (is (= 404 status)))
 
 (deftest not-found-returned-for-unknown-paths
-  (checking "" [path (generators/such-that
+  (checking "" [authorisation-id users/authorisation-id-generator
+                path (generators/such-that
                        (fn [path]
                          (let [existing-routes (->> (app/router nil #{})
                                                     (reitit/routes)
@@ -34,9 +37,9 @@
                                                     (set))]
                            (not (contains? existing-routes path))))
                        generators/string-alphanumeric)
-                request (request/generator path)]
-    (let [response (-> #{}
-                       (test-system/construct-handler)
+                request (request/generator authorisation-id path)]
+    (let [response (-> authorisation-id
+                       (test-system/construct-handler-for-user #{})
                        (test-system/make-request request))]
       (is (non-existant-route-returns-not-found? response)))))
 

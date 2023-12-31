@@ -7,12 +7,6 @@
             [contacts.test-lib.test-system :as test-system]
             [idle.multiset.api :as mset]))
 
-(defn new-contacts-generator [& opts]
-  (generators/fmap mset/multiset
-                   (apply generators/vector
-                          (malli.generator/generator contacts-storage/new-contact-schema)
-                          opts)))
-
 (def contacts-list-generator
   (->> contacts-storage/new-contact-schema
        (malli.generator/generator)
@@ -23,25 +17,25 @@
   (->> contacts-list-generator
        (generators/such-that seq)))
 
+(defn n-contacts-list-generator [n]
+  (let [new-contact-generator (malli.generator/generator contacts-storage/new-contact-schema)]
+    (->> n
+         (generators/vector new-contact-generator)
+         (generators/fmap mset/multiset))))
+
 (defn- contacts-list [handler contacts-list-request]
   (->> contacts-list-request
        (test-system/make-request handler)
        (html/rendered-contacts)))
 
-(defn existing-contacts-generator
-  ([handler] (existing-contacts-generator handler nil))
-  ([handler authorisation-id]
-   (generators/let [contacts-list-request (if authorisation-id
-                                            (request/authorised-request-generator authorisation-id "/contacts")
-                                            (request/generator "/contacts"))]
-     (generators/return (contacts-list handler contacts-list-request)))))
+(defn existing-contacts-generator [handler authorisation-id]
+  (generators/let [contacts-list-request (request/generator authorisation-id "/contacts")]
+    (generators/return (contacts-list handler contacts-list-request))))
 
-(defn nth-contact-generator
-  ([handler] (nth-contact-generator handler nil))
-  ([handler authorisation-id]
-   (generators/let [contacts (existing-contacts-generator handler authorisation-id)
-                    contact-index (generators/large-integer* {:min 0 :max (dec (count contacts))})]
-     (generators/return (nth contacts contact-index)))))
+(defn nth-contact-generator [handler authorisation-id]
+  (generators/let [contacts (existing-contacts-generator handler authorisation-id)
+                   contact-index (generators/large-integer* {:min 0 :max (dec (count contacts))})]
+    (generators/return (nth contacts contact-index))))
 
 (defn strip-ids [contacts]
   (->> contacts

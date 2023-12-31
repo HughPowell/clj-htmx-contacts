@@ -67,8 +67,8 @@
                              (generators/vector)
                              (generators/such-that seq))
                 initial-contacts contacts-list/contacts-list-generator
-                new-contacts (contacts-list/new-contacts-generator (count (filter #{:create} actions)))
-                contact-updates (contacts-list/new-contacts-generator (count (filter #{:update} actions)))
+                new-contacts (contacts-list/n-contacts-list-generator (count (filter #{:create} actions)))
+                contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
       (let [sut (contacts-storage/by-user-contacts-storage connection)
@@ -132,8 +132,8 @@
                              (generators/vector)
                              (generators/such-that seq))
                 initial-contacts contacts-list/contacts-list-generator
-                new-contacts (contacts-list/new-contacts-generator (count (filter #{:create} actions)))
-                contact-updates (contacts-list/new-contacts-generator (count (filter #{:update} actions)))
+                new-contacts (contacts-list/n-contacts-list-generator (count (filter #{:create} actions)))
+                contact-updates (contacts-list/n-contacts-list-generator (count (filter #{:update} actions)))
                 index-%s (index-%-per-action-generator actions)]
     (with-open [connection (database/reset)]
       (let [sut (contacts-storage/by-user-contacts-storage connection)

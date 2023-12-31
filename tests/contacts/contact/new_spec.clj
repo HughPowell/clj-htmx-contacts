@@ -27,7 +27,7 @@
 (deftest getting-a-new-contact-form-provides-an-empty-form
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/contacts-list-generator
-                request (request/authorised-request-generator authorisation-id sut-path)]
+                request (request/generator authorisation-id sut-path)]
     (let [response (-> authorisation-id
                        (test-system/construct-handler-for-user contacts)
                        (test-system/make-request request))]
@@ -47,11 +47,11 @@
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/contacts-list-generator
                 contact (malli.generator/generator sut/schema)
-                save-contact-request (request/authorised-request-generator authorisation-id
-                                                                           sut-path
-                                                                           {:request-method :post
+                save-contact-request (request/generator authorisation-id
+                                                        sut-path
+                                                        {:request-method :post
                                                                             :form-params    contact})
-                contacts-list-request (request/authorised-request-generator authorisation-id contacts-list-path)]
+                contacts-list-request (request/generator authorisation-id contacts-list-path)]
     (let [handler (test-system/construct-handler-for-user authorisation-id contacts)
           save-contact-response (test-system/make-request handler save-contact-request)
           contacts-list-response (test-system/make-request handler contacts-list-request)]
@@ -98,7 +98,7 @@
                                        (fn [contact] (not (malli/validate sut/schema contact)))))
                 invalid-contact-request (->> invalid-contact
                                              (hash-map :request-method :post :form-params)
-                                             (request/authorised-request-generator authorisation-id sut-path))]
+                                             (request/generator authorisation-id sut-path))]
     (let [invalid-contact-response (-> authorisation-id
                                        (test-system/construct-handler-for-user contacts)
                                        (test-system/make-request invalid-contact-request))]

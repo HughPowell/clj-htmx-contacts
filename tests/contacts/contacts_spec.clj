@@ -31,7 +31,7 @@
 (deftest all-contacts-returned-when-no-query
   (checking "" [authorisation-id users/authorisation-id-generator
                 contacts contacts-list/non-empty-contacts-list-generator
-                request (request/authorised-request-generator authorisation-id sut-path)]
+                request (request/generator authorisation-id sut-path)]
     (let [response (-> authorisation-id
                        (test-system/construct-handler-for-user contacts)
                        (test-system/make-request request))]
@@ -70,9 +70,9 @@
                              generators/string-alphanumeric])
                           generators/string-alphanumeric)
                 search (substring-generator string')
-                request (request/authorised-request-generator authorisation-id
-                                                              sut-path
-                                                              {:query-params {:query search}})]
+                request (request/generator authorisation-id
+                                           sut-path
+                                           {:query-params {:query search}})]
     (let [response (test-system/make-request handler request)]
       (is (successful-response? response))
       (is (returns-expected-data-type? response))
@@ -80,7 +80,17 @@
       (is (unmatched-contacts-are-not-rendered? existing-contacts response search))
       (is (all-rendered-contacts-exist? existing-contacts response)))))
 
+(defn- unauthorised-response? [response]
+  (is (= 401 (:status response))))
+(deftest unauthorised-requests-are-rejected
+  (checking "" [contacts contacts-list/contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-user nil contacts))
+                request (request/generator nil sut-path)]
+    (let [response (test-system/make-request handler request)]
+      (is (unauthorised-response? response)))))
+
 (comment
   (all-contacts-returned-when-no-query)
   (contacts-that-match-search-are-rendered)
+  (unauthorised-requests-are-rejected)
   )
