@@ -7,7 +7,10 @@
             [contacts.lib.http :as http]
             [contacts.system.users-storage :as users-storage]
             [java-time.api :as java-time]
-            [liberator.representation :as representation]))
+            [liberator.representation :as representation]
+            [malli.core :as malli]))
+
+(def authorisation-id-schema [:string {:min 1}])
 
 (defprotocol Authorization
   (authorized? [this ctx]
@@ -78,7 +81,7 @@
           [false {:login-completed? false}])
 
         (authorization-cookie? request)
-        (if-let [subject-id (cookie->subject-id config request)]
+        (if-let [subject-id (malli/coerce authorisation-id-schema (cookie->subject-id config request))]
           [true {:user (users-storage/->user users-storage subject-id)
                  :logout-uri (http/construct-url
                                (:logout-uri config)
