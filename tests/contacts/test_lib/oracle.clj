@@ -57,6 +57,9 @@
             (recur (str (random-uuid)))
             (swap! store update-in [user-id :contacts] assoc proposed-id (assoc contact :id proposed-id))))
         this)
+      (contacts-storage/delete-for-user* [this user-id contact-id]
+        (swap! store update-in [user-id :contacts] dissoc contact-id)
+        this)
       users-storage/UsersStorage
       (users-storage/->user* [_ authorisation-id]
         (if-let [user (first (filter (fn [user] (= (:authorisation-id user) authorisation-id)) (vals @store)))]

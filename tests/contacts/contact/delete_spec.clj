@@ -6,8 +6,7 @@
             [contacts.test-lib.test-system :as test-system]
             [contacts.test-lib.html :as html]
             [contacts.test-lib.request :as request]
-            [contacts.system.contacts-storage :as contacts-storage]
-            [malli.generator :as malli.generator]))
+            [contacts.test-lib.users :as users]))
 
 (def ^:private contacts-list-path "/contacts")
 
@@ -23,12 +22,15 @@
       (set (remove (fn [{:keys [id]}] (= contact-id id)) contacts))))
 
 (deftest deleting-contact-deletes-contact-in-contacts-list
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                handler (generators/return (test-system/construct-handler contacts))
-                contacts-list-request (request/generator contacts-list-path)
-                contact-to-delete (contacts-list/nth-contact-generator handler)
-                delete-contact-request (request/generator (format sut-path-format (:id contact-to-delete))
-                                                          {:request-method :post})]
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/non-empty-contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                contacts-list-request (request/authorised-request-generator authorisation-id contacts-list-path)
+                contact-to-delete (contacts-list/nth-contact-generator handler authorisation-id)
+                delete-contact-request (request/authorised-request-generator authorisation-id
+                                                                             (format sut-path-format
+                                                                                     (:id contact-to-delete))
+                                                                             {:request-method :post})]
     (let [delete-contact-response (test-system/make-request handler delete-contact-request)
           contacts-list-response (test-system/make-request handler contacts-list-request)]
       (deleting-contact-redirects-to-contacts-list? delete-contact-response)
@@ -38,20 +40,24 @@
   (is (= 404 status)))
 
 (deftest deleting-non-existent-contact-fails
-  (checking "" [contacts (generators/such-that seq (malli.generator/generator contacts-storage/contacts-schema))
-                handler (generators/return (test-system/construct-handler contacts))
-                contacts-request (request/generator contacts-list-path)
-                existing-contacts (contacts-list/existing-contacts-generator handler)
+  (checking "" [authorisation-id users/authorisation-id-generator
+                contacts contacts-list/non-empty-contacts-list-generator
+                handler (generators/return (test-system/construct-handler-for-users authorisation-id contacts))
+                contacts-request (request/authorised-request-generator authorisation-id contacts-list-path)
+                existing-contacts (contacts-list/existing-contacts-generator handler authorisation-id)
                 contact-ids (generators/return (set (map :id existing-contacts)))
                 id (generators/such-that
                      (fn [id]
                        (and (seq id)
                             (not (contains? contact-ids id))))
                      generators/string-alphanumeric)
-                delete-request (request/generator (format sut-path-format id)
-                                                  {:request-method :post})]
+                delete-request (request/authorised-request-generator authorisation-id
+                                                                     (format sut-path-format id)
+                                                                     {:request-method :post})]
     (let [response (test-system/make-request handler delete-request)]
       (non-existent-contact-not-found? response))))
+
+;; TODO Make sure users can't delete others contacts
 
 (comment
   (deleting-contact-deletes-contact-in-contacts-list)
