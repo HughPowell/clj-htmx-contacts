@@ -1,0 +1,9 @@
+{:tasks
+ {app:format (shell "cljfmt fix")
+  app:format:check (shell "cljfmt check")
+  app:lint (shell "clj-kondo --lint src:tests:dev:infra:shared")
+  app:test (shell "clojure -X:test")
+
+  app:check (do (run 'app:format:check)
+                (run 'app:lint)
+                (run 'app:test))}}
